@@ -516,6 +516,10 @@ func main() {
 	cmdCurl := kingpin.Command("curl", "curl command")
 	subcmd.RegisterCurl(cmdCurl)
 
+	// CMD: mrc
+	cmdMrc := kingpin.Command("mrc", "mrc command")
+	subcmd.RegisterMrc(cmdMrc)
+
 	// CMD: server
 	cmdServer := kingpin.Command("server", "start server")
 	fDaemon := cmdServer.Flag("daemon", "daemon mode").Short('d').Bool()
@@ -540,6 +544,9 @@ func main() {
 	switch kingpin.Parse() {
 	case "curl":
 		subcmd.DoCurl()
+		return
+	case "mrc":
+		subcmd.DoMrc()
 		return
 	case "version":
 		println(version)

@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/codeskyblue/goreq v0.0.0-20180831024223-49450746aaef
+	github.com/dolfly/mr v1.0.0
 	github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 // indirect
 	github.com/dustin/go-broadcast v0.0.0-20171205050544-f664265f5a66
 	github.com/franela/goblin v0.0.0-20181003173013-ead4ad1d2727 // indirect
