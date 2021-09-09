@@ -7,6 +7,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/openatx/atx-agent/collector"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/promlog"
 	"io"
 	"io/ioutil"
 	syslog "log"
@@ -453,10 +456,16 @@ func lazyInit() {
 	if !isMinicapSupported() {
 		minicapSocketPath = "@minicapagent"
 	}
+<<<<<<< HEAD
 	if !fileExists(path.Join(expath, "minitouch")) {
 		minitouchSocketPath = "@minitouchagent"
+=======
+
+	if !fileExists("/data/local/tmp/minitouch") {
+		minitouchSocketPath = "@minitouch"
+>>>>>>> caoshitong369/master
 	} else if sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk")); sdk > 28 { // Android Q..
-		minitouchSocketPath = "@minitouchagent"
+		minitouchSocketPath = "@minitouch"
 	}
 }
 
@@ -526,16 +535,26 @@ func main() {
 	cmdServer := kingpin.Command("server", "start server")
 	fDaemon := cmdServer.Flag("daemon", "daemon mode").Short('d').Bool()
 	fStop := cmdServer.Flag("stop", "stop server").Bool()
+<<<<<<< HEAD
 
 	cmdServer.Flag("addr", "listen addr").Default(":7912").StringVar(&listenAddr) // Create on 2017/09/12
+=======
+	// cmdServer.Flag("addr", "listen port").Default(":7912").StringVar(&listenAddr) // Create on 2017/09/12
+>>>>>>> caoshitong369/master
 	cmdServer.Flag("log", "log file path when in daemon mode").StringVar(&daemonLogPath)
 	// fServerURL := cmdServer.Flag("server", "server url").Short('t').String()
 
+<<<<<<< HEAD
 	fServer := cmdServer.Flag("server", "frpc token").Short('s').Default("cc.ipviewer.cn:17000").String()
 	fToken := cmdServer.Flag("token", "frpc server").Short('t').Default("taikang").String()
 	fAuth := cmdServer.Flag("auth", "frpc auth").Short('a').String()
 
 	fNoUiautomator := cmdServer.Flag("nouia", "do not start uiautoamtor when start").Bool()
+=======
+	// disable metrics
+	disableMetrics := cmdServer.Flag("nometrics", "disable metrics").Bool()
+
+>>>>>>> caoshitong369/master
 	// CMD: version
 	kingpin.Command("version", "show version")
 
@@ -831,9 +850,28 @@ func main() {
 	}()
 
 	if !*fNoUiautomator {
-		if err := service.Start("uiautomator"); err != nil {
-			log.Println("uiautomator start failed:", err)
+		/*
+			if err := service.Start("uiautomator"); err != nil {
+				log.Println("uiautomator start failed:", err)
+			}
+		*/
+		log.Println("uiautomator disabled")
+	}
+
+	if !*disableMetrics {
+		// xm collector
+		log.Println("start xm collector")
+		logLevel := &promlog.AllowedLevel{}
+		logLevel.Set("info")
+		cLogger := promlog.New(&promlog.Config{
+			Level: logLevel,
+		})
+		c, err := collector.NewNodeCollector(cLogger)
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
+		prometheus.MustRegister(c)
 	}
 
 	if *fServer != "" {
@@ -871,7 +909,15 @@ func main() {
 			log.Println("Ignore signal", sig)
 		}
 	}()
+<<<<<<< HEAD
 	service.Start("minitouch")
+=======
+
+	if !fileExists("/data/local/tmp/minitouch") {
+		service.Start("minitouch")
+	}
+
+>>>>>>> caoshitong369/master
 	// run server forever
 	if err := server.Serve(listener); err != nil {
 		log.Println("server quit:", err)
