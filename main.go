@@ -134,7 +134,7 @@ func getOutboundIP() (ip net.IP, err error) {
 func mustGetOoutboundIP() net.IP {
 	ip, err := getOutboundIP()
 	if err != nil {
-		return net.ParseIP("127.0.0.1")
+		return net.ParseIP("0.0.0.0")
 		// panic(err)
 	}
 	return ip
