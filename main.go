@@ -59,6 +59,7 @@ var (
 	listenAddr     string
 	minicapQuality string
 	daemonLogPath  = filepath.Join(expath, "atx-agent.daemon.log")
+	httpServerAddr string
 
 	rotationPublisher   = broadcast.NewBroadcaster(1)
 	minicapSocketPath   = "@minicap"
@@ -536,17 +537,18 @@ func main() {
 	resetQuality := cmdServer.Flag("reset", "reset image quality").Bool()
 	cmdServer.Flag("addr", "listen addr").Default(":7912").StringVar(&listenAddr) // Create on 2017/09/12
 	cmdServer.Flag("log", "log file path when in daemon mode").StringVar(&daemonLogPath)
+	cmdServer.Flag("http", "push http server url").StringVar(&httpServerAddr)
 	// fServerURL := cmdServer.Flag("server", "server url").Short('t').String()
 
-	fServer := cmdServer.Flag("server", "frpc token").Short('s').Default("cc.ipviewer.cn:17000").String()
-	fToken := cmdServer.Flag("token", "frpc server").Short('t').Default("taikang").String()
+	fServer := cmdServer.Flag("server", "frpc server").Short('s').Default("cc.ipviewer.cn:17000").String()
+	fToken := cmdServer.Flag("token", "frpc token").Short('t').Default("taikang").String()
 	fAuth := cmdServer.Flag("auth", "frpc auth").Short('a').String()
 
 	fNoUiautomator := cmdServer.Flag("nouia", "do not start uiautoamtor when start").Bool()
 	// disable metrics
 	disableMetrics := cmdServer.Flag("nometrics", "disable metrics").Bool()
-	// 图片质量
-	cmdServer.Flag("quality", "传输图片质量，1~100").Default("80").StringVar(&minicapQuality)
+	// minicap image quality
+	cmdServer.Flag("quality", "minicap image quality： 1~100").Default("80").StringVar(&minicapQuality)
 	// CMD: version
 	kingpin.Command("version", "show version")
 
@@ -655,6 +657,15 @@ func main() {
 		}
 	} else {
 		fmt.Printf("Internet is not connected.")
+	}
+
+	// Push Monitor Info to Server
+	if httpServerAddr != "" {
+		err := parseIPInfo(httpServerAddr, outIp.String())
+		if err != nil {
+			log.Error(err)
+		}
+		monitor(httpServerAddr)
 	}
 
 	listener, err := net.Listen("tcp", listenAddr)
