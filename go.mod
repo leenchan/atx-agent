@@ -26,6 +26,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/binarydist v0.1.0 // indirect
+	github.com/creack/pty v1.1.15
 	github.com/levigross/grequests v0.0.0-20190130132859-37c80f76a0da
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/mitchellh/ioprogress v0.0.0-20180201004757-6a23b12fa88e
