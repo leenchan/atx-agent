@@ -3,6 +3,9 @@ CURR_DIR=$(cd "$(dirname "$0" 2>/dev/null)";pwd)
 OUTPUT_DIR="$CURR_DIR/dist"
 VERSION=$(cat "$CURR_DIR/main.go" | grep 'version\s*=' | grep -Eo '[0-9.]+')
 
+export GO111MODULE=on
+export GOPROXY=https://goproxy.cn
+
 # go get github.com/shurcooL/vfsgen
 go generate ./
 
