@@ -59,6 +59,10 @@ func (server *Server) initHTTPServer() {
 		renderHTML(w, "remote.html")
 	})
 
+	m.HandleFunc("/control", func(w http.ResponseWriter, r *http.Request) {
+		renderHTML(w, "control.html")
+	})
+
 	// jsonrpc client to call uiautomator
 	rpcc := jsonrpc.NewClient("http://127.0.0.1:9008/jsonrpc/0")
 	rpcc.ErrorCallback = func() error {

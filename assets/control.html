@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATX Remote Control</title>
+</head>
+<style>
+  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+  body { padding: 0; margin: 0; background: #eee; color: #555;}
+  input { display: inline-block; height: 32px; line-height: 32px; }
+  button { display: inline-block; height: 32px; border: 1px solid #777; background: #fff; cursor: pointer; color: #555; }
+  .icon { vertical-align: top; display: inline-block; width: 16px; height: 16px; background-color: transparent; background-position: center; background-repeat: no-repeat; background-size: 100%;}
+  .icon-power {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDg5Ljg4OCA0ODkuODg4IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0ODkuODg4IDQ4OS44ODg7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMjUuMzgzLDI5MC41Yy03LjItNzcuNSwyNS45LTE0Ny43LDgwLjgtMTkyLjNjMjEuNC0xNy40LDUzLjQtMi41LDUzLjQsMjVsMCwwYzAsMTAuMS00LjgsMTkuNC0xMi42LDI1LjcNCgkJCWMtMzguOSwzMS43LTYyLjMsODEuNy01Ni42LDEzNi45YzcuNCw3MS45LDY1LDEzMC4xLDEzNi44LDEzOC4xYzkzLjcsMTAuNSwxNzMuMy02Mi45LDE3My4zLTE1NC41YzAtNDguNi0yMi41LTkyLjEtNTcuNi0xMjAuNg0KCQkJYy03LjgtNi4zLTEyLjUtMTUuNi0xMi41LTI1LjZsMCwwYzAtMjcuMiwzMS41LTQyLjYsNTIuNy0yNS42YzUwLjIsNDAuNSw4Mi40LDEwMi40LDgyLjQsMTcxLjhjMCwxMjYuOS0xMDcuOCwyMjkuMi0yMzYuNywyMTkuOQ0KCQkJQzEyMi4xODMsNDgxLjgsMzUuMjgzLDM5Ni45LDI1LjM4MywyOTAuNXogTTI0NC44ODMsMGMtMTgsMC0zMi41LDE0LjYtMzIuNSwzMi41djE0OS43YzAsMTgsMTQuNiwzMi41LDMyLjUsMzIuNQ0KCQkJczMyLjUtMTQuNiwzMi41LTMyLjVWMzIuNUMyNzcuMzgzLDE0LjYsMjYyLjg4MywwLDI0NC44ODMsMHoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==');}
+  .icon-home {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMiA1MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTA1LjAxNywyMTguODgxTDI3Mi41NzEsNy41NjdsLTIuMjIxLTIuMDE5Yy0xLjUyNi0xLjM4Ny0zLjIwMi0yLjUxNC00Ljk3My0zLjM4MWMtMC4wNzktMC4wMzgtMC4xNjEtMC4wNjYtMC4yNC0wLjEwNA0KCQkJYy01Ljc3Mi0yLjczOC0xMi41MDMtMi43MzgtMTguMjc2LDBjLTAuMDc5LDAuMDM3LTAuMTYxLDAuMDY1LTAuMjQsMC4xMDRjLTEuNzcxLDAuODY3LTMuNDQ3LDEuOTk0LTQuOTczLDMuMzgxbC0yLjE4OSwxLjk5DQoJCQlMNi45ODMsMjE4Ljg4MWMtOC43MTgsNy45MjUtOS4zNjEsMjEuNDE4LTEuNDM1LDMwLjEzNmM3LjkyNSw4LjcxOCwyMS40MTgsOS4zNjEsMzAuMTM2LDEuNDM1bDYuOTgzLTYuMzQ4djI0Ni41NjMNCgkJCUM0Mi42NjcsNTAyLjQ0OSw1Mi4yMTgsNTEyLDY0LDUxMmgxMDYuNjY3aDE3MC42NjdINDQ4YzExLjc4MiwwLDIxLjMzMy05LjU1MSwyMS4zMzMtMjEuMzMzVjI0NC4xMDRsNi45ODMsNi4zNDgNCgkJCWM4LjcxOCw3LjkyNiwyMi4yMSw3LjI4MywzMC4xMzYtMS40MzVDNTE0LjM3OCwyNDAuMjk5LDUxMy43MzUsMjI2LjgwNyw1MDUuMDE3LDIxOC44ODF6IE0yMTMuMzMzLDQ2OS4zMzR2LTEyOA0KCQkJYzAtMjMuNTY3LDE5LjA5OS00Mi42NjcsNDIuNjY3LTQyLjY2N3M0Mi42NjcsMTkuMDk5LDQyLjY2Nyw0Mi42Njd2MTI4SDIxMy4zMzN6IE00MjYuNjY3LDQ2OS4zMzRoLTg1LjMzM3YtMTI4DQoJCQlDMzQxLjMzNCwyOTQuMjAyLDMwMy4xMzIsMjU2LDI1NiwyNTZzLTg1LjMzMywzOC4yMDItODUuMzMzLDg1LjMzM3YxMjhIODUuMzMzVjIwNS4zMkwyNTYsNTAuMTY1TDQyNi42NjcsMjA1LjMyVjQ2OS4zMzR6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=');}
+  .icon-back {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMi4wNjEgNTEyLjA2MSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyLjA2MSA1MTIuMDYxOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwIC0xKSI+DQoJPGc+DQoJCTxnPg0KCQkJPHBhdGggZD0iTTIxLjM2NCwxLjAzQzkuNTgyLDEuMDMsMC4wMywxMC41ODIsMC4wMywyMi4zNjR2NDY5LjMzM2MwLDExLjc4Miw5LjU1MSwyMS4zMzMsMjEuMzMzLDIxLjMzMw0KCQkJCWMxMS43ODIsMCwyMS4zMzMtOS41NTEsMjEuMzMzLTIxLjMzM1YyNTcuMDNWMjIuMzY0QzQyLjY5NywxMC41ODIsMzMuMTQ2LDEuMDMsMjEuMzY0LDEuMDN6Ii8+DQoJCQk8cGF0aCBkPSJNNDgwLjQxNiwzLjY3MUw1My43NDksMjM4LjMzOGMtNy4zNjgsNC4wNTMtMTEuMDUyLDExLjM3My0xMS4wNTIsMTguNjkzYzAsNy4zMiwzLjY4NCwxNC42NCwxMS4wNTIsMTguNjkzDQoJCQkJTDQ4MC40MTYsNTEwLjM5YzE0LjIxOCw3LjgyLDMxLjYxNC0yLjQ2NiwzMS42MTQtMTguNjkzVjIyLjM2NEM1MTIuMDMsNi4xMzgsNDk0LjYzNC00LjE0OSw0ODAuNDE2LDMuNjcxeiBNNDY5LjM2NCw0NTUuNjE3DQoJCQkJTDEwOC4yOTgsMjU3LjAzTDQ2OS4zNjQsNTguNDQ0VjQ1NS42MTd6Ii8+DQoJCTwvZz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg=='); background-size: 85%;}
+  .icon-menu {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMiA1MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8Zz4NCgkJCTxwYXRoIGQ9Ik0yMS4zMzMsNTMuMzMzaDQ2OS4zMzNDNTAyLjQ0OSw1My4zMzMsNTEyLDQzLjc4Miw1MTIsMzJjMC0xMS43ODItOS41NTEtMjEuMzMzLTIxLjMzMy0yMS4zMzNIMjEuMzMzDQoJCQkJQzkuNTUxLDEwLjY2NywwLDIwLjIxOCwwLDMyQzAsNDMuNzgyLDkuNTUxLDUzLjMzMywyMS4zMzMsNTMuMzMzeiIvPg0KCQkJPHBhdGggZD0iTTQ5MC42NjcsNDU4LjY2N0gyMS4zMzNDOS41NTEsNDU4LjY2NywwLDQ2OC4yMTgsMCw0ODBzOS41NTEsMjEuMzMzLDIxLjMzMywyMS4zMzNoNDY5LjMzMw0KCQkJCWMxMS43ODIsMCwyMS4zMzMtOS41NTEsMjEuMzMzLTIxLjMzM1M1MDIuNDQ5LDQ1OC42NjcsNDkwLjY2Nyw0NTguNjY3eiIvPg0KCQkJPHBhdGggZD0iTTQ5MC42NjcsMzA5LjMzM0gyMS4zMzNDOS41NTEsMzA5LjMzMywwLDMxOC44ODUsMCwzMzAuNjY3QzAsMzQyLjQ0OSw5LjU1MSwzNTIsMjEuMzMzLDM1Mmg0NjkuMzMzDQoJCQkJYzExLjc4MiwwLDIxLjMzMy05LjU1MSwyMS4zMzMtMjEuMzMzQzUxMiwzMTguODg1LDUwMi40NDksMzA5LjMzMyw0OTAuNjY3LDMwOS4zMzN6Ii8+DQoJCQk8cGF0aCBkPSJNNDkwLjY2NywxNjBIMjEuMzMzQzkuNTUxLDE2MCwwLDE2OS41NTEsMCwxODEuMzMzYzAsMTEuNzgyLDkuNTUxLDIxLjMzMywyMS4zMzMsMjEuMzMzaDQ2OS4zMzMNCgkJCQljMTEuNzgyLDAsMjEuMzMzLTkuNTUxLDIxLjMzMy0yMS4zMzNDNTEyLDE2OS41NTEsNTAyLjQ0OSwxNjAsNDkwLjY2NywxNjB6Ii8+DQoJCTwvZz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==');}
+  .icon-run {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMi4wNTUgNTEyLjA1NSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyLjA1NSA1MTIuMDU1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTUwMC4yMzUsMjM2Ljk0NkwzMC45MDEsMi4yOEMxNi43MTctNC44MTMsMC4wMjgsNS41MDIsMC4wMjgsMjEuMzYxdjQ2OS4zMzNjMCwxNS44NTksMTYuNjg5LDI2LjE3MywzMC44NzQsMTkuMDgxDQoJCQlsNDY5LjMzMy0yMzQuNjY3QzUxNS45NTgsMjY3LjI0Nyw1MTUuOTU4LDI0NC44MDgsNTAwLjIzNSwyMzYuOTQ2eiBNNDIuNjk0LDQ1Ni4xNzZWNTUuODc5bDQwMC4yOTcsMjAwLjE0OUw0Mi42OTQsNDU2LjE3NnoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==');}
+  .icon-send {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE2LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgd2lkdGg9Ijk3LjEwM3B4IiBoZWlnaHQ9Ijk3LjEwNHB4IiB2aWV3Qm94PSIwIDAgOTcuMTAzIDk3LjEwNCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgOTcuMTAzIDk3LjEwNDsiDQoJIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPHBhdGggZD0iTTkzLjgyLDAuMzdjLTAuNjk3LTAuNDY5LTEuNi0wLjQ5NC0yLjMyLTAuMDY2TDMuMzg4LDUyLjU4NWMtMC43NDgsMC40NDQtMS4xNTgsMS4yOTEtMS4wNDMsMi4xNTINCgkJYzAuMTEzLDAuODYsMC43MzIsMS41NzEsMS41NjgsMS44MDVsMjIuMzg5LDYuMjMzYzAuNjgsMC4xODgsMS40MDksMC4wMzYsMS45NTYtMC40MWwzNS43NjgtMjkuMjE5TDM5LjA3NSw2NC45OTMNCgkJYy0wLjMwMSwwLjM4Mi0wLjQ2MiwwLjg1NC0wLjQ2MiwxLjMzOXYyOC42MDJjMCwwLjk2NiwwLjYzNiwxLjgxNCwxLjU2MywyLjA4M2MwLjIwMSwwLjA2LDAuNDA1LDAuMDg3LDAuNjA3LDAuMDg3DQoJCWMwLjcyOCwwLDEuNDI1LTAuMzY2LDEuODMtMS4wMDRsMTUuNTc3LTI0LjQ1bDIyLjc3Miw2LjMzOGMwLjU5OCwwLjE2NywxLjI0LDAuMDY3LDEuNzY0LTAuMjcxDQoJCWMwLjUyMS0wLjMzOSwwLjg3My0wLjg4NSwwLjk2Ny0xLjQ5OUw5NC43NTMsMi40OTNDOTQuODc4LDEuNjY1LDk0LjUxNSwwLjgzOCw5My44MiwwLjM3eiIvPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=');}
+  .icon-clear {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE4LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDE2Ny43NTEgMTY3Ljc1MSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMTY3Ljc1MSAxNjcuNzUxOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8cGF0aCBkPSJNMCw4My44NzVjMCw0Ni4yNDksMzcuNjI2LDgzLjg3NSw4My44NzUsODMuODc1czgzLjg3NS0zNy42MjYsODMuODc1LTgzLjg3NVMxMzAuMTI1LDAsODMuODc1LDBTMCwzNy42MjYsMCw4My44NzV6DQoJIE04My44NzUsMTUyLjc1MUM0NS44OTcsMTUyLjc1MSwxNSwxMjEuODU0LDE1LDgzLjg3NWMwLTE2LjI5Miw1LjY5OC0zMS4yNzIsMTUuMTkxLTQzLjA3OGw5Ni43NjIsOTYuNzYyDQoJQzExNS4xNDcsMTQ3LjA1MiwxMDAuMTY4LDE1Mi43NTEsODMuODc1LDE1Mi43NTF6IE0xNTIuNzUsODMuODc1YzAsMTYuMjkyLTUuNjk4LDMxLjI3Mi0xNS4xOSw0My4wNzhMNDAuNzk3LDMwLjE5MQ0KCUM1Mi42MDMsMjAuNjk4LDY3LjU4MywxNSw4My44NzUsMTVDMTIxLjg1MywxNSwxNTIuNzUsNDUuODk3LDE1Mi43NSw4My44NzV6Ii8+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==');}
+  .label { border: 1px solid rgb(134, 134, 134); color:rgb(134, 134, 134); border-radius: 4px; padding: 2px 6px; }
+  .label.info { border: 1px solid rgb(32, 145, 238); color:rgb(32, 145, 238); }
+  .label.error { border: 1px solid rgb(240, 29, 29); color: rgb(240, 29, 29); }
+  .label.success { border: 1px solid rgb(54, 206, 7); color:rgb(54, 206, 7); }
+  .label.warn { border: 1px solid rgb(236, 133, 15); color: rgb(236, 133, 15); }
+
+  .container { width: 100%; margin: 0 auto; max-width: 1280px;}
+  #main { background: #fff; color: #555; margin: 16px auto; display: flex; flex-direction: row; margin-top: 16px; box-shadow: 0 0 16px rgba(0,0,0,0.075); border-radius: 16px; overflow: hidden; }
+  #screen { display: block; margin: 0 auto; width: 100%; max-width: 480px; padding: 16px; background: #555; }
+  #canvas { display: inline; width: 100%; vertical-align: top; }
+  #control { flex: 1; padding: 16px; }
+  .log-wrapper {margin-top: 16px; height: 300px; overflow: hidden; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; }
+  #log-control {display: flex; height: 32px; border-bottom: 1px solid #eee; padding: 6px; justify-content: right;}
+  #log-control .icon { width: 18px; height: 18px; cursor: pointer;}
+  #log { overflow: auto; padding: 8px; height: 268px; }
+  #log > * + * { margin-top: 8px; }
+  #log .label {margin-right: 6px; user-select: none;}
+  #android-buttons { display: flex; justify-content: center; margin: 0; padding: 4px 0; background: #555;}
+  #android-buttons li {padding: 12px 16px; list-style: none; cursor: pointer; opacity: 0.8; transition: all 0.3s ease; color: #ccc; text-align: center; }
+  #android-buttons li:hover { opacity: 1; background-color: #444; }
+  #android-buttons li + li { border-left: 1px solid rgba(0,0,0,0.125); }
+  #android-buttons .icon {margin-right: 6px; opacity: 0.5; filter: invert(1);}
+  #send-text { display: flex; border: 1px solid #ccc; padding: 4px; border-radius: 8px; }
+  #send-text input { flex: 1; border: none; background-color: #eee; border-radius: 4px; padding: 0 8px;}
+  #send-text input:focus {outline: none; background-color: #fefefe; }
+  #send-text button { border: none; }
+  #send-text .icon {width: 16px; height: 16px; margin-right: 4px; opacity: 0.75;}
+
+  .container.horizontal { flex-direction: column; }
+  .container.horizontal #screen { max-width: unset; }
+  @media (max-width: 576px) {
+    #main { flex-direction: column; box-shadow: unset; border-radius: 0; margin: 0; }
+    #screen { padding: 0; max-width: unset; }
+    #android-buttons li { font-size: 12px; padding: 8px;}
+    #android-buttons li .icon { width: 12px; height: 12px; vertical-align: middle; }
+  }
+  
+</style>
+<body>
+  <div class="container" id="main">
+    <div id="screen">
+      <canvas id="canvas"></canvas>
+      <ul id="android-buttons">
+        <li data-keycode="26"><i class="icon icon-power"></i>Power</li>
+        <!-- <li data-keycode="27">Camera</li> -->
+        <li data-keycode="3"><i class="icon icon-home"></i>Home</li>
+        <li data-keycode="4"><i class="icon icon-back"></i>Back</li>
+        <li data-keycode="1"><i class="icon icon-menu"></i>Menu</li>
+      </ul>
+    </div>
+    <div id="control">
+      <div class="send-text" id="send-text">
+        <input />
+        <button id="run-cmd"><i class="icon icon-run"></i>Run</button>
+        <button id="send-text-to"><i class="icon icon-send"></i>Send</button>
+      </div>
+      <div class="log-wrapper">
+        <div id="log-control">
+          <i class="icon icon-clear"></i>
+        </div>
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+<script>
+/*jshint browser:true*/
+
+var 
+  // atxHost = '192.168.3.214:7912',
+  atxHost = location.host,
+  protocolScheme = location.toString().split(':')[0],
+  apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
+  apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
+
+window.orientation = 0;
+window.displayPhySize = undefined;
+var mainDOM = document.getElementById('main');
+var BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+var canvas = document.getElementById('canvas'), g = canvas.getContext('2d');
+
+function logAction(text, tag) {
+  var logDOM = document.getElementById('log');
+  var logItem = document.createElement('DIV');
+  if (tag) {
+    var logTag = document.createElement('SPAN');
+    logTag.className = 'label' + (tag == 'minitouch' ? ' info' : '');
+    logTag.textContent = tag;
+    logItem.appendChild(logTag);
+  }
+  var logContent = document.createElement('SPAN');
+  logContent.textContent = text;
+  logItem.append(logContent);
+  logDOM.appendChild(logItem);
+  logDOM.scrollTo(0, logDOM.scrollHeight);
+}
+
+function shell(options) {
+  logAction(options.cmd);
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', apiHttpScheme + atxHost + '/shell', true);
+  xhr.setRequestHeader('Content-Type', "application/x-www-form-urlencoded");
+  xhr.onreadystatechange = function(res) { // Call a function when the state changes.
+    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+      if (typeof options.onSuccess == 'function') {
+        options.onSuccess(res);
+      }
+        // Request finished. Do processing here.
+    }
+  }
+  xhr.send("command=" + encodeURIComponent(options.cmd));
+}
+
+function initDisplay() {
+  shell({cmd: 'dumpsys display', onSuccess: function(res) {
+    var data = JSON.parse(res.target.response);
+    if (data.output) {
+      // console.log(data.output)
+      var orientationData = data.output.match(/orientation=[0-3]/);
+      if (orientationData && orientationData[0]) {
+        window.orientation = orientationData[0].split('=')[1] * 1;
+        console.log('orientation: ' + window.orientation);
+      }
+      var mStableDisplaySize = data.output.match(/mStableDisplaySize=[^\(]*\([^\)]+\)/);
+      if (mStableDisplaySize && mStableDisplaySize[0]) {
+        window.displayPhySize = mStableDisplaySize[0].replace(/.*\(/,'').replace(/([0-9]+),\s*([0-9]+)/, '$1x$2')
+      }
+    }
+  }});
+}
+
+var wsMinicap = new WebSocket(apiWebsocketScheme + atxHost + '/minicap');
+wsMinicap.binaryType = 'blob';
+wsMinicap.onclose = function() {
+  console.log('onclose', arguments);
+}
+wsMinicap.onerror = function() {
+  console.log('onerror', arguments);
+}
+wsMinicap.onmessage = function(message) {
+  var blob = new Blob([message.data], {type: 'image/jpeg'});
+  var URL = window.URL || window.webkitURL;
+  var img = new Image();
+  img.onload = function() {
+    // console.log(img.width, img.height);
+    canvas.width = img.width;
+    canvas.height = img.height;
+    if (img.width >= img.height) {
+      mainDOM.classList.add('horizontal');
+    } else if (mainDOM.classList.contains('horizontal')) {
+      mainDOM.classList.remove('horizontal');
+    }
+    if (window.displaySize != img.width+'x'+img.height) {
+      window.displaySize = img.width+'x'+img.height;
+      initDisplay();
+    }
+    g.drawImage(img, 0, 0);
+    img.onload = null;
+    img.src = BLANK_IMG;
+    img = null;
+    u = null;
+    blob = null;
+  };
+  var u = URL.createObjectURL(blob);
+  img.src = u;
+}
+wsMinicap.onopen = function() {
+  console.log('onopen', arguments);
+  if (wsMinitouch.readyState == 1) {
+    wsMinicap.send('1920x1080/0');
+  }
+};
+
+var wsMinitouch = new WebSocket(apiWebsocketScheme + atxHost + '/minitouch');
+wsMinitouch.onclose = function() {
+  console.log('onclose', arguments);
+};
+wsMinitouch.onerror = function() {
+  console.log('onerror', arguments);
+};
+wsMinitouch.onopen = function() {
+  console.log('onopen', arguments);
+};
+wsMinitouch.onmessage = function(message) {
+};
+
+var pointersDown = {};
+function minitouchJsonToCmd(obj) {
+  var cmd = '';
+  ['operation', 'index', 'xP', 'yP', 'pressure'].forEach(function(name) {
+    if (obj[name] !== undefined && obj[name] !== null && obj[name] !== '') {
+      cmd += cmd == '' ? obj[name] : (' ' + obj[name]);
+    }
+  });
+  return cmd;
+}
+function sendTouch(obj) {
+  var xP, yP;
+  if (obj.xP || obj.yP) {
+    xP = Math.floor(obj.xP * 1000) / 1000;
+    yP = Math.floor(obj.yP * 1000) / 1000;
+    switch (window.orientation) {
+      case 1:
+        obj.xP = 1 - yP;
+        obj.yP = xP;
+        break;
+      case 2:
+        obj.xP = 1 - xP;
+        obj.yP = 1 - yP;
+        break;
+      case 3:
+        obj.xP = 1 - yP;
+        obj.yP = xP;
+        break;
+      default:
+        obj.xP = xP;
+        obj.yP = yP;
+        break;
+    }
+  }
+  logAction(minitouchJsonToCmd(obj),'minitouch');
+  if (wsMinitouch.readyState == 1) {
+    wsMinitouch.send(JSON.stringify(obj));
+  }
+}
+canvas.addEventListener('pointerdown', function(e) {
+  pointersDown[e.pointerId - 1] = e;
+  sendTouch({ operation: 'd', index: e.pointerId - 1, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50});
+  sendTouch({ operation: 'c' });
+});
+canvas.addEventListener('pointerup', function(e) {
+  sendTouch({ operation: 'u', index: e.pointerId - 1 });
+  sendTouch({ operation: 'c' });
+  delete pointersDown[e.pointerId - 1];
+});
+canvas.addEventListener('pointerout', function(e) {
+  if (pointersDown[e.pointerId - 1]) {
+    sendTouch({ operation: 'u', index: e.pointerId - 1 });
+    sendTouch({ operation: 'c' });
+    delete pointersDown[e.pointerId - 1];
+  }
+});
+canvas.addEventListener('pointermove', function(e) {
+  if (!pointersDown[e.pointerId - 1]) {
+    return false;
+  }
+  sendTouch({ operation: 'm', index: e.pointerId - 1, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50});
+  sendTouch({ operation: 'c' });
+});
+
+// $ curl -X POST -d command="pwd" $DEVICE_URL/shell
+// {
+//     "output": "/",
+//     "error": null
+// }
+
+function inputKey(keycode) {
+  shell({cmd: 'input keyevent ' + keycode});
+}
+
+function inputText(text) {
+  shell({cmd: 'input text "' + text + '"'});
+}
+
+function sendKeybordCode(e) {
+	var keyCode;
+	var keyMap = {
+		['Escape']: 4, ['Backspace']: 67,
+		// ['.']: 56, [';']: 74, ['/']: 76,
+		['ArrowLeft']: 21, ['ArrowUp']: 19, ['ArrowRight']: 22, ['ArrowDown']: 20, ['Enter']: 66, ['Space']: 62,
+	}
+	if (e.keyCode >= 65 && e.keyCode <= 90) {
+		keyCode = 29 + (e.keyCode * 1 - 65);
+	} else if (e.keyCode >= 48 && e.keyCode <= 57) {
+		keyCode = 7 + (e.keyCode * 1 - 48);
+	} else if (keyMap[e.key]) {
+		keyCode = keyMap[e.key];
+	}
+	if (e.key.length == 1) {
+		inputText(e.key);
+	} else if (keyCode) {
+		inputKey(keyCode);
+	} else {
+	}
+	console.log('keybord_code', e.key, e.keyCode);
+}
+
+document.addEventListener('keydown', function(e) {
+  // console.log(e)
+});
+document.addEventListener('keyup', function(e) {
+  if (e.target.tagName == 'INPUT' || e.target.tagName == 'TEXTAREA' || e.ctrlKey || e.altKey) {
+    return;
+  }
+  sendKeybordCode(e)
+});
+
+var sendTextButton = document.getElementById('send-text-to');
+sendTextButton.addEventListener('click', function() {
+  var text = document.querySelector('#send-text input').value;
+  inputText(text);
+});
+var runCmdButton = document.getElementById('run-cmd');
+runCmdButton.addEventListener('click', function() {
+  var text = document.querySelector('#send-text input').value;
+  shell({ cmd: text });
+});
+
+var androidButtons = document.querySelectorAll('#android-buttons > li');
+androidButtons.forEach(function(button) {
+  button.addEventListener('click', function(e) {
+    var keyCode = this.getAttribute('data-keycode');
+    inputKey(keyCode);
+  });
+});
+
+(function(){
+})();
+
+</script>
+</html>
