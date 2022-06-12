@@ -525,10 +525,6 @@ func main() {
 	cmdCurl := kingpin.Command("curl", "curl command")
 	subcmd.RegisterCurl(cmdCurl)
 
-	// CMD: frpc
-	cmdFrpc := kingpin.Command("frpc", "frpc command")
-	subcmd.RegisterFrpc(cmdFrpc)
-
 	// CMD: server
 	cmdServer := kingpin.Command("server", "start server")
 	fDaemon := cmdServer.Flag("daemon", "daemon mode").Short('d').Bool()
@@ -538,11 +534,6 @@ func main() {
 	cmdServer.Flag("addr", "listen addr").Default(":7912").StringVar(&listenAddr) // Create on 2017/09/12
 	cmdServer.Flag("log", "log file path when in daemon mode").StringVar(&daemonLogPath)
 	cmdServer.Flag("http", "push http server url").StringVar(&httpServerAddr)
-	// fServerURL := cmdServer.Flag("server", "server url").Short('t').String()
-
-	fServer := cmdServer.Flag("server", "frpc server").Short('s').Default("cc.ipviewer.cn:17000").String()
-	fToken := cmdServer.Flag("token", "frpc token").Short('t').Default("taikang").String()
-	fAuth := cmdServer.Flag("auth", "frpc auth").Short('a').String()
 
 	fNoUiautomator := cmdServer.Flag("nouia", "do not start uiautoamtor when start").Bool()
 	// disable metrics
@@ -565,9 +556,6 @@ func main() {
 	switch kingpin.Parse() {
 	case "curl":
 		subcmd.DoCurl()
-		return
-	case "frpc":
-		subcmd.DoFrpc()
 		return
 	case "version":
 		fmt.Println(version)
@@ -652,9 +640,6 @@ func main() {
 	outIp, err := getOutboundIP()
 	if err == nil {
 		fmt.Printf("Device IP: %v\n", outIp)
-		if *fServer != "" {
-			fmt.Printf("Listen on http://%s.tk.ipviewer.cn\n", devInfo.Udid)
-		}
 	} else {
 		fmt.Printf("Internet is not connected.")
 	}
@@ -702,70 +687,6 @@ func main() {
 			return []string{"CLASSPATH=" + packagePath, "exec", "app_process", "/system/bin", "com.github.uiautomator.ScrcpyAgent"}, nil
 		},
 		Shell: true,
-	})
-
-	service.Add("remote_adbd", cmdctrl.CommandInfo{
-		MaxRetries: 2,
-		Shell:      false,
-		OnStart: func() error {
-			runShell("stop", "adbd")
-			runShell("setprop", "service.adb.tcp.port", "5555")
-			runShell("start", "adbd")
-			return nil
-		},
-		ArgsFunc: func() ([]string, error) {
-			ex, err := os.Executable()
-			if err != nil {
-				return []string{}, err
-			}
-			args := []string{ex, "frpc",
-				"-k", "stcp", "-l", "5555",
-				"-n", "adbd_" + devInfo.Udid[0:8],
-				"--ue", "--uc",
-				"-s", *fServer, "-t", *fToken,
-				"--role", "server", "--sk", "secadb"}
-			return args, nil
-		},
-	})
-
-	service.Add("remote_http", cmdctrl.CommandInfo{
-		MaxRetries: 2,
-		Shell:      false,
-		ArgsFunc: func() ([]string, error) {
-			ex, err := os.Executable()
-			if err != nil {
-				return []string{}, err
-			}
-			host := "127.0.0.1"
-			port := "7912"
-			arr := strings.Split(listenAddr, ":")
-			if len(arr) == 2 {
-				host = arr[0]
-				port = arr[1]
-			}
-			_ = host
-			args := []string{ex, "frpc",
-				"-k", "http", "-l", port,
-				"-n", devInfo.Udid,
-				"--ue", "--uc",
-				"-s", *fServer, "-t", *fToken,
-				"--sd", devInfo.Udid}
-			if *fAuth != "" {
-				strs := strings.Split(*fAuth, ":")
-				if len(strs) >= 2 {
-					args = append(args, []string{
-						"--http_user=" + strs[0],
-						"--http_pass=" + strs[1],
-					}...)
-				} else {
-					args = append(args, []string{
-						"--http_user=" + *fAuth,
-						"--http_pass=" + *fAuth,
-					}...)
-				}
-			}
-			return args, nil
-		},
 	})
 
 	service.Add("apkagent", cmdctrl.CommandInfo{
@@ -904,16 +825,6 @@ func main() {
 			return
 		}
 		prometheus.MustRegister(c)
-	}
-
-	if *fServer != "" {
-		if err := service.Start("remote_http"); err != nil {
-			log.Println("frpc remote_http start failed:", err)
-		}
-		log.Printf("you can visit with [%s]", devInfo.Udid)
-		if err := service.Start("remote_adbd"); err != nil {
-			log.Println("frpc remote_adbd start failed:", err)
-		}
 	}
 
 	server := NewServer()

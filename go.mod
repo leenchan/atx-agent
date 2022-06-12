@@ -8,8 +8,6 @@ require (
 	github.com/codeskyblue/goreq v0.0.0-20180831024223-49450746aaef
 	github.com/creack/pty v1.1.15
 	github.com/dustin/go-broadcast v0.0.0-20171205050544-f664265f5a66
-	github.com/fatedier/frp v0.33.0
-	github.com/fatedier/golib v0.0.0-20181107124048-ff8cd814b049
 	github.com/filebrowser/filebrowser/v2 v2.0.16
 	github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8
 	github.com/getlantern/context v0.0.0-20181106182922-539649cc3118 // indirect
@@ -40,8 +38,6 @@ require (
 	github.com/rs/cors v1.6.0
 	github.com/sevlyar/go-daemon v0.1.4
 	github.com/shogo82148/androidbinary v1.0.1
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/sys v0.0.0-20210521203332-0cec03c779c1 // indirect
