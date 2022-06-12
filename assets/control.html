@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>ATX Remote Control</title>
 </head>
 <style>
@@ -193,8 +193,8 @@
 /*jshint browser:true*/
 
 var 
-  // atxHost = '192.168.1.208:7912',
-  atxHost = location.host,
+  atxHost = '192.168.100.210:7912',
+  // atxHost = location.host,
   protocolScheme = location.toString().split(':')[0],
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
@@ -251,7 +251,7 @@ function initDisplay() {
       // console.log(data.output)
       var orientationData = data.output.match(/orientation=[0-3]/);
       if (orientationData && orientationData[0]) {
-        window.orientation = orientationData[0].split('=')[1] * 1;
+        window.orientation = orientationData[0].split('=')[1] * 90;
         console.log('orientation: ' + window.orientation);
       }
       var mStableDisplaySize = data.output.match(/mStableDisplaySize=[^\(]*\([^\)]+\)/);
@@ -271,6 +271,10 @@ wsMinicap.onerror = function() {
   console.log('onerror', arguments);
 }
 wsMinicap.onmessage = function(message) {
+  if (typeof message == 'string' && message.match(/rotation [0-9]+/)) {
+    window.orientation = message.match(/[0-9]+/)[0];
+    console.log('rotation: ' + window.orientation);
+  }
   var blob = new Blob([message.data], {type: 'image/jpeg'});
   var URL = window.URL || window.webkitURL;
   var img = new Image();
@@ -353,31 +357,32 @@ function sendTouch(obj) {
     xP = Math.floor(obj.xP * 1000) / 1000;
     yP = Math.floor(obj.yP * 1000) / 1000;
     switch (window.orientation) {
-      case 1:
+      case 90:
         obj.xP = 1 - yP;
         obj.yP = xP;
         break;
-      case 2:
-        obj.xP = 1 - xP;
-        obj.yP = 1 - yP;
-        break;
-      case 3:
-        obj.xP = 1 - yP;
-        obj.yP = xP;
-        break;
+      // case 180:
+      //   obj.xP = 1 - xP;
+      //   obj.yP = 1 - yP;
+      //   break;
+      // case 270:
+      //   obj.xP = 1 - yP;
+      //   obj.yP = xP;
+      //   break;
       default:
         obj.xP = xP;
         obj.yP = yP;
         break;
     }
   }
-  if (wsMinitouch.readyState === 1) {
+  if (wsMinitouch.readyState >=1 && window.orientation <= 90) {
     logAction(minitouchJsonToCmd(obj),'minitouch');
     wsMinitouch.send(JSON.stringify(obj));
   } else {
     if (obj.operation == 'u' && window.displayPhySize) {
-      var displayW = window.displayPhySize.split('x')[0],
-        displayH = window.displayPhySize.split('x')[1];
+      var displayPhySize = window.displayPhySize.split('x');
+      var displayW = (window.orientation == 90 || window.orientation == 270) ? displayPhySize[1] : displayPhySize[0],
+        displayH = (window.orientation == 90 || window.orientation == 270) ? displayPhySize[0] : displayPhySize[1];
       if (pointersMove[obj.index]) {
         shell({ cmd: 'input swipe ' + 
           Math.floor(pointersDown[obj.index].xP*displayW) + ' ' + Math.floor(pointersDown[obj.index].yP*displayH) + ' ' +
