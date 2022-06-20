@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/openatx/androidutils"
 )
@@ -26,9 +28,11 @@ func installRequirements() error {
 	if err := installMinitouch(); err != nil {
 		return err
 	}
-
 	log.Println("install minicap")
-	return installMinicap()
+	if err := installMinicap(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func installUiautomatorAPK() error {
@@ -136,6 +140,86 @@ func installMinitouch() error {
 	})
 	_, err := httpDownload(minitouchbin, binURL, 0755)
 	return err
+}
+
+func installFileBrowser() error {
+	expath, _ = os.Getwd()
+	dlDir := filepath.Join(expath, "dl")
+	if _, err := os.Stat(dlDir); err != nil {
+		err := os.Mkdir(dlDir, 0777)
+		if err != nil {
+			return err
+		}
+	}
+	abi := getCachedProperty("ro.product.cpu.abi")
+	// abi := "armeabi-v7a"
+	abiMap := map[string]string{"armeabi-v7a": "armv7", "arm64-v8a": "arm64", "x86": "386", "x86_64": "amd64"}
+	arch, ok := abiMap[abi]
+	if !ok {
+		return errors.New("math: square root of negative number")
+	}
+	filebrowserBin := filepath.Join(expath, "filebrowser")
+	url, err := getGithubLatestReleaseUrl("filebrowser/filebrowser", "[^\"]+linux-"+arch+"[^\"]+")
+	if err != nil {
+		return err
+	}
+	fmt.Println("Download: " + url)
+	tarFileName := url[strings.LastIndex(url, "/")+1:]
+	tarFile := filepath.Join(dlDir, tarFileName)
+	if _, err := httpDownload(tarFile, url, 0644); err != nil {
+		return err
+	}
+	if err := Untar(tarFile, dlDir); err != nil {
+		return err
+	}
+	if _, err := Copyfile(filepath.Join(dlDir, "filebrowser"), filebrowserBin, 0755); err != nil {
+		os.RemoveAll(dlDir)
+		return err
+	}
+	os.RemoveAll(dlDir)
+	return nil
+}
+
+func installAliyundriveWebdav() error {
+	expath, _ = os.Getwd()
+	dlDir := filepath.Join(expath, "dl")
+	fmt.Print(dlDir)
+	if _, err := os.Stat(dlDir); err != nil {
+		err := os.Mkdir(dlDir, 0777)
+		if err != nil {
+			return err
+		}
+	}
+	abi := getCachedProperty("ro.product.cpu.abi")
+	// abi := "armeabi-v7a"
+	abiMap := map[string]string{"armeabi-v7a": "armv7", "arm64-v8a": "aarch64", "x86": "i686", "x86_64": "x86_64"}
+	arch, ok := abiMap[abi]
+	if !ok {
+		return errors.New("math: square root of negative number")
+	}
+	aliyundriveWebdavBin := filepath.Join(expath, "aliyundrive-webdav")
+	url, err := getGithubLatestReleaseUrl("messense/aliyundrive-webdav", "[^\"]+aliyundrive-webdav-[^\"]+"+arch+"[^\"]+\\.tar\\.gz")
+	if err != nil {
+		return err
+	}
+	fmt.Println("Download: " + url)
+	tarFileName := url[strings.LastIndex(url, "/")+1:]
+	tarFile := filepath.Join(dlDir, tarFileName)
+	if _, err := httpDownload(tarFile, url, 0644); err != nil {
+		return err
+	}
+	if err := Untar(tarFile, dlDir); err != nil {
+		return err
+	}
+	// if err := ExtractRPM(tarFile, dlDir); err != nil {
+	// 	return err
+	// }
+	if _, err := Copyfile(filepath.Join(dlDir, "usr/bin/aliyundrive-webdav"), aliyundriveWebdavBin, 0755); err != nil {
+		os.RemoveAll(dlDir)
+		return err
+	}
+	os.RemoveAll(dlDir)
+	return nil
 }
 
 func checkUiautomatorInstalled() (ok bool) {

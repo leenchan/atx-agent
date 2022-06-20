@@ -65,6 +65,7 @@ func (h *Hub) _startScrcpyAgent(ctx context.Context) {
 
 func (h *Hub) _startTranslate(ctx context.Context) {
 	h.broadcast <- []byte("welcome")
+
 	if minicapSocketPath == "@minicap" {
 		service.Start("minicap")
 	}
@@ -97,7 +98,7 @@ func (h *Hub) _startTranslate(ctx context.Context) {
 			break
 		} else {
 			conn.Close()
-			log.Println("translateMinicap error:", er) //scrcpy read error, try to read again")
+			// log.Println("translateMinicap error:", er) //scrcpy read error, try to read again")
 		}
 	}
 }
@@ -210,9 +211,18 @@ func (c *Client) readPump() {
 
 func broadcastWebsocket() func(http.ResponseWriter, *http.Request) {
 	hub := newHub()
-	go hub.run() // start read images from unix:@minicap
+	go hub.run()
+	// start read images from unix:@minicap
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		if err := installMinicap(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		if !service.Running("minicap") {
+			if err := service.Start("minicap"); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)

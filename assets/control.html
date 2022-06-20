@@ -75,18 +75,23 @@
   .key-group .key-group-center {display: block; text-align: center; flex: 1;}
   .key-group .key-group-center::before {content: ""; position: relative; height: 100%; display: inline-block; vertical-align: middle;}
   .key-group .key-group-center > * {vertical-align: middle; opacity: 0.5; width: 20px; height: 20px;}
+  #remote-control {display: flex;}
   #remote-control *[data-keycode] {border-radius: 4px;}
   #remote-control *[data-keycode]:hover {background-color: #000;}
+  #remote-control #remote-control-left {display: none;}
+  #remote-control #remote-control-right {padding: 0 8px; flex: 1;}
   #remote-control-nav-fun {display: flex; padding: 16px 0 8px; line-height: 16px;}
   #remote-control-nav {display: flex; border: 1px solid rgba(128,128,128,0.85); width: 144px; height: 144px; flex-wrap: wrap; border-radius: 144px; overflow: hidden;}
   #remote-control-nav > * {width: 33.33%; padding: 16px 0;}
   #remote-control-a, #remote-control-b {flex: 1; display: flex; flex-wrap: wrap; flex-direction: row; padding: 4px; gap: 4px;}
   #remote-control-a > *[data-keycode], #remote-control-b > *[data-keycode] {width: 48px; height: 48px; line-height: 24px; padding: 12px; border-radius: 48px; border: 1px solid rgba(128,128,128,0.85);}
   #remote-control-a .icon, #remote-control-b .icon {width: 24px; height: 24px;}
-  #remote-control-b {justify-content: end; align-content: start;}
+  #remote-control-b {justify-content: end;}
   #remote-control-media {display: flex;}
   #remote-control-media > * {flex: 1; padding: 12px;}
   #remote-control-media .icon {width: 24px; height: 24px;}
+  .container.horizontal #remote-control #remote-control-left {flex: 1; display: inline-block;}
+  .container.horizontal #remote-control #remote-control-right {max-width: 300px; border-left: 1px solid rgba(128,128,128,0.25); flex: 1;}
 
   .container.horizontal { flex-direction: column; }
   .container.horizontal #screen { max-width: unset; }
@@ -169,7 +174,7 @@
         <li data-keycode="187"><i class="icon icon-tasks"></i>Tasks</li>
         <li data-keycode="3"><i class="icon icon-home"></i>Home</li>
         <li data-keycode="4"><i class="icon icon-back"></i>Back</li>
-        <li data-keycode="1"><i class="icon icon-menu"></i>Menu</li>
+        <li data-keycode="82"><i class="icon icon-menu"></i>Menu</li>
         <li id="open-control"><i class="icon icon-control"></i>Control</li>
       </ul>
     </div>
@@ -193,8 +198,8 @@
 /*jshint browser:true*/
 
 var 
-  atxHost = '192.168.100.210:7912',
-  // atxHost = location.host,
+  atxHost = location.host,
+  // atxHost = '192.168.3.214:7912',
   protocolScheme = location.toString().split(':')[0],
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
@@ -202,12 +207,16 @@ var
 window.orientation = 0;
 window.displayPhySize = undefined;
 window.disabledMinitouch = false;
+window.screenSize = undefined;
 
 var mainDOM = document.getElementById('main');
 var BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 var canvas = document.getElementById('canvas'), g = canvas.getContext('2d');
 
 function logAction(text, tag) {
+  if (!text || text == '') {
+    return;
+  }
   var logDOM = document.getElementById('log');
   var logItem = document.createElement('DIV');
   if (tag) {
@@ -256,7 +265,8 @@ function initDisplay() {
       }
       var mStableDisplaySize = data.output.match(/mStableDisplaySize=[^\(]*\([^\)]+\)/);
       if (mStableDisplaySize && mStableDisplaySize[0]) {
-        window.displayPhySize = mStableDisplaySize[0].replace(/.*\(/,'').replace(/([0-9]+),\s*([0-9]+).*/, '$1x$2')
+        window.displayPhySize = mStableDisplaySize[0].replace(/.*\(/,'').replace(/([0-9]+),\s*([0-9]+).*/, '$1x$2');
+        console.log('displayPhySize:' + window.displayPhySize);
       }
     }
   }});
@@ -271,25 +281,26 @@ wsMinicap.onerror = function() {
   console.log('onerror', arguments);
 }
 wsMinicap.onmessage = function(message) {
-  if (typeof message == 'string' && message.match(/rotation [0-9]+/)) {
-    window.orientation = message.match(/[0-9]+/)[0];
-    console.log('rotation: ' + window.orientation);
+  if (typeof message.data == 'string' && message.data.match(/rotation [0-9]+/)) {
+    window.orientation = message.data.match(/[0-9]+/)[0];
+    // initDisplay();
+    // return;
   }
   var blob = new Blob([message.data], {type: 'image/jpeg'});
   var URL = window.URL || window.webkitURL;
   var img = new Image();
   img.onload = function() {
-    // console.log(img.width, img.height);
     canvas.width = img.width;
     canvas.height = img.height;
+    mainDOM.classList.add('horizontal');
     if (img.width >= img.height) {
       mainDOM.classList.add('horizontal');
-    } else if (mainDOM.classList.contains('horizontal')) {
+    } else {
       mainDOM.classList.remove('horizontal');
     }
-    if (window.displaySize != img.width+'x'+img.height) {
-      window.displaySize = img.width+'x'+img.height;
+    if (img.width + 'x' + img.height != window.screenSize) {
       initDisplay();
+      window.screenSize = img.width + 'x' + img.height;
     }
     g.drawImage(img, 0, 0);
     img.onload = null;
@@ -303,9 +314,6 @@ wsMinicap.onmessage = function(message) {
 }
 wsMinicap.onopen = function() {
   console.log('onopen', arguments);
-  setTimeout(() => {
-    wsMinicap.send('1920x1080/0');
-  }, 4000)
   wsMinicap.send('1920x1080/0');
 };
 
@@ -334,6 +342,9 @@ function clearPointer(index) {
   }
 }
 function minitouchJsonToCmd(obj) {
+  if (!window.displayPhySize) {
+    return;
+  }
   var cmd = '';
   var displayW = window.displayPhySize.split('x')[0],
     displayH = window.displayPhySize.split('x')[1];
@@ -375,8 +386,8 @@ function sendTouch(obj) {
         break;
     }
   }
-  if (wsMinitouch.readyState >=1 && window.orientation <= 90) {
-    logAction(minitouchJsonToCmd(obj),'minitouch');
+  if (wsMinitouch.readyState == 1 && window.orientation <= 90) {
+    logAction(minitouchJsonToCmd(obj), 'minitouch');
     wsMinitouch.send(JSON.stringify(obj));
   } else {
     if (obj.operation == 'u' && window.displayPhySize) {
@@ -395,17 +406,20 @@ function sendTouch(obj) {
   }
 }
 canvas.addEventListener('pointerdown', function(e) {
+  if (e.button == 2) {return}
   var event = { operation: 'd', index: e.pointerId - 1, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
   sendTouch(event);
   sendTouch({ operation: 'c' });
   pointersDown[e.pointerId - 1] = event;
 });
 canvas.addEventListener('pointerup', function(e) {
+  if (e.button == 2) {return}
   sendTouch({ operation: 'u', index: e.pointerId - 1 });
   sendTouch({ operation: 'c' });
   clearPointer(e.pointerId - 1);
 });
 canvas.addEventListener('pointerout', function(e) {
+  if (e.button == 2) {return}
   if (pointersDown[e.pointerId - 1]) {
     sendTouch({ operation: 'u', index: e.pointerId - 1 });
     sendTouch({ operation: 'c' });
@@ -413,6 +427,7 @@ canvas.addEventListener('pointerout', function(e) {
   }
 });
 canvas.addEventListener('pointermove', function(e) {
+  if (e.button == 2) {return}
   if (!pointersDown[e.pointerId - 1]) {
     return false;
   }

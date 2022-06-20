@@ -1,8 +1,10 @@
 package main
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -693,4 +695,125 @@ func getPackagePath(packageName string) (string, error) {
 	}
 	packagePath := strings.TrimSpace(pmPathOutput[len("package:"):])
 	return packagePath, nil
+}
+
+func Untar(src string, dst string) error {
+	r, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+	tr := tar.NewReader(gzr)
+	for {
+		header, err := tr.Next()
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case header == nil:
+			continue
+		}
+		target := filepath.Join(dst, header.Name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(f, tr); err != nil {
+				return err
+			}
+			f.Close()
+		}
+	}
+}
+
+// require (github.com/sassoftware/go-rpmutils)
+// func ExtractRPM(name string, dest string) error {
+// 	// Open a package file for reading
+// 	f, err := os.Open(name)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	rpm, err := rpmutils.ReadRpm(f)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Getting metadata
+// 	nevra, err := rpm.Header.GetNEVRA()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Println(nevra)
+// 	provides, err := rpm.Header.GetStrings(rpmutils.PROVIDENAME)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Println("Provides:")
+// 	for _, p := range provides {
+// 		fmt.Println(p)
+// 	}
+// 	// Extracting payload
+// 	if err := rpm.ExpandPayload(dest); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
+func Copyfile(src, dst string, perms os.FileMode) (int64, error) {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return 0, err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return 0, fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer source.Close()
+
+	destination, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY, perms)
+	if err != nil {
+		return 0, err
+	}
+	defer destination.Close()
+	nBytes, err := io.Copy(destination, source)
+
+	return nBytes, err
+}
+
+func getGithubLatestReleaseUrl(repo string, fileRegex string) (string, error) {
+	// fmt.Println("https://github.com/" + repo + "/releases/latest")
+	res, err := goreq.Request{
+		Uri:             "https://github.com/" + repo + "/releases/latest",
+		MaxRedirects:    10,
+		RedirectHeaders: true,
+	}.Do()
+	defer res.Body.Close()
+	html, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	re, _ := regexp.Compile("href=\"" + fileRegex + "\"")
+	url := re.FindString(string(html))
+	if url == "" {
+		return "", errors.New("Not find url")
+	}
+	url = "https://github.com" + strings.Split(url, "\"")[1]
+	return url, nil
 }

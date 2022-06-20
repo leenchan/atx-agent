@@ -61,10 +61,14 @@ var (
 	daemonLogPath  = filepath.Join(expath, "atx-agent.daemon.log")
 	httpServerAddr string
 
-	rotationPublisher   = broadcast.NewBroadcaster(1)
-	minicapSocketPath   = "@minicap"
-	minitouchSocketPath = "@minitouch"
-	log                 = logger.Default
+	rotationPublisher       = broadcast.NewBroadcaster(1)
+	minicapSocketPath       = "@minicap"
+	minitouchSocketPath     = "@minitouch"
+	filebrowserRootDir      = "/sdcard"
+	filebrowserPort         = "8000"
+	aliyundriveRefreshToken string
+	aliyundrivePort         = "8080"
+	log                     = logger.Default
 )
 
 // singleFight for http request
@@ -318,6 +322,52 @@ var (
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
+
+	filebrowserProxy = &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.RawQuery = "" // ignore http query
+			req.URL.Scheme = "http"
+			req.URL.Host = "127.0.0.1:" + filebrowserPort
+		},
+		Transport: &http.Transport{
+			// Ref: https://golang.org/pkg/net/http/#RoundTripper
+			Dial: func(network, addr string) (net.Conn, error) {
+				conn, err := (&net.Dialer{
+					Timeout:   5 * time.Second,
+					KeepAlive: 30 * time.Second,
+					DualStack: true,
+				}).Dial(network, addr)
+				return conn, err
+			},
+			MaxIdleConns:          100,
+			IdleConnTimeout:       180 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
+
+	aliyundriveProxy = &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.RawQuery = "" // ignore http query
+			req.URL.Scheme = "http"
+			req.URL.Host = "0.0.0.0:" + aliyundrivePort
+		},
+		Transport: &http.Transport{
+			// Ref: https://golang.org/pkg/net/http/#RoundTripper
+			Dial: func(network, addr string) (net.Conn, error) {
+				conn, err := (&net.Dialer{
+					Timeout:   5 * time.Second,
+					KeepAlive: 30 * time.Second,
+					DualStack: true,
+				}).Dial(network, addr)
+				return conn, err
+			},
+			MaxIdleConns:          100,
+			IdleConnTimeout:       180 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
 )
 
 type errorBinaryReader struct {
@@ -457,9 +507,9 @@ func init() {
 func lazyInit() {
 	// watch rotation and send to rotatinPublisher
 	go _watchRotation()
-	if !isMinicapSupported() {
-		minicapSocketPath = "@minicapagent"
-	}
+	// if !isMinicapSupported() {
+	// 	minicapSocketPath = "@minicapagent"
+	// }
 	if !fileExists(path.Join(expath, "minitouch")) {
 		minitouchSocketPath = "@minitouchagent"
 	} else if sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk")); sdk > 28 { // Android Q..
@@ -539,7 +589,11 @@ func main() {
 	// disable metrics
 	disableMetrics := cmdServer.Flag("nometrics", "disable metrics").Bool()
 	// minicap image quality
-	cmdServer.Flag("quality", "minicap image quality： 1~100").Default("80").StringVar(&minicapQuality)
+	cmdServer.Flag("quality", "minicap image quality： 1~100").Short('q').Default("80").StringVar(&minicapQuality)
+	// FileBrowser
+	cmdServer.Flag("files", "FileBrowser: root directory").Short('f').Default("/sdcard").StringVar(&filebrowserRootDir)
+	// aliyundrive
+	cmdServer.Flag("refresh-token", "AliyunDrive: refresh token").Short('r').StringVar(&aliyundriveRefreshToken)
 	// CMD: version
 	kingpin.Command("version", "show version")
 
@@ -664,6 +718,16 @@ func main() {
 		Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", expath)},
 		Args: []string{fmt.Sprintf("%v/%v", expath, "minicap"), "-S", "-P",
 			fmt.Sprintf("%dx%d@%dx%d/0", width, height, displayMaxWidthHeight, displayMaxWidthHeight), "-Q", minicapQuality},
+	})
+
+	// File Browser
+	service.Add("filebrowser", cmdctrl.CommandInfo{
+		Args: []string{fmt.Sprintf("%v/%v", expath, "filebrowser"), "-b", "/fb", "-a", "127.0.0.1", "-p", filebrowserPort, "-r", filebrowserRootDir},
+	})
+
+	// Aliyundrive Webdav
+	service.Add("aliyundrive", cmdctrl.CommandInfo{
+		Args: []string{fmt.Sprintf("%v/%v", expath, "aliyundrive-webdav"), "--refresh-token", aliyundriveRefreshToken, "--port", aliyundrivePort, "--auto-index"},
 	})
 
 	service.Add("scrcpy", cmdctrl.CommandInfo{
@@ -852,7 +916,10 @@ func main() {
 			log.Println("Ignore signal", sig)
 		}
 	}()
+
 	service.Start("minitouch")
+	service.Start("filebrowser")
+
 	// run server forever
 	if err := server.Serve(listener); err != nil {
 		log.Println("server quit:", err)

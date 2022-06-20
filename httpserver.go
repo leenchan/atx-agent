@@ -9,10 +9,13 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -42,10 +45,19 @@ func NewServer() *Server {
 	return server
 }
 
+func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
+	url, err := url.Parse(targetHost)
+	if err != nil {
+		return nil, err
+	}
+
+	return httputil.NewSingleHostReverseProxy(url), nil
+}
+
 func (server *Server) initHTTPServer() {
 	m := mux.NewRouter()
 
-	m.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		renderHTML(w, "index.html")
 	})
 
@@ -902,6 +914,14 @@ func (server *Server) initHTTPServer() {
 	}).Methods("DELETE")
 
 	m.HandleFunc("/minitouch", singleFightNewerWebsocket(func(w http.ResponseWriter, r *http.Request, ws *websocket.Conn) {
+		if err := installMinitouch(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		if !service.Running("minitouch") {
+			if err := service.Start("minitouch"); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}
 		defer ws.Close()
 		const wsWriteWait = 10 * time.Second
 		wsWrite := func(messageType int, data []byte) error {
@@ -983,6 +1003,54 @@ func (server *Server) initHTTPServer() {
 	minicapHandler := broadcastWebsocket()
 	m.HandleFunc("/minicap/broadcast", minicapHandler).Methods("GET")
 	m.HandleFunc("/minicap", minicapHandler).Methods("GET")
+
+	// FileBrowser
+	m.HandleFunc("/fb", func(w http.ResponseWriter, r *http.Request) {
+		if err := installFileBrowser(); err == nil {
+			log.Println("update FileBrowser success")
+			io.WriteString(w, "Update FileBrowser success")
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}).Methods("PUT")
+	m.MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		match, _ := regexp.MatchString("/fb.*", r.URL.Path)
+		return match
+	}).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		running := service.Running("filebrowser")
+		if !running {
+			if !fileExists(filepath.Join(expath, "filebrowser")) {
+				if err := installFileBrowser(); err != nil {
+					http.Error(w, "Fail to install Filebrowser", http.StatusInternalServerError)
+				}
+				if err := service.Start("filebrowser"); err != nil {
+					http.Error(w, "Fail to start Filebrowser", http.StatusInternalServerError)
+				}
+				time.Sleep(2 * time.Second)
+			}
+		}
+		// fmt.Println(r.URL.Path)
+		filebrowserProxy.ServeHTTP(w, r)
+	})
+
+	// Aliyundrive Webdav
+	m.HandleFunc("/aliyun", func(w http.ResponseWriter, r *http.Request) {
+		if err := installAliyundriveWebdav(); err == nil {
+			log.Println("update aliyundrive-webdav success")
+			io.WriteString(w, "Update aliyundrive-webdav success")
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}).Methods("PUT")
+	m.MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		match, _ := regexp.MatchString("/aliyun.*", r.URL.Path)
+		return match
+	}).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// fmt.Println(r.URL.Path)
+		re := regexp.MustCompile("^/aliyun/")
+		r.URL.Path = re.ReplaceAllString(r.URL.Path, "/")
+		filebrowserProxy.ServeHTTP(w, r)
+	})
 
 	// TODO(ssx): perfer to delete
 	// FIXME(ssx): screenrecord is not good enough, need to change later
@@ -1195,15 +1263,15 @@ func (server *Server) initHTTPServer() {
 	})
 	m.Handle("/assets/{(.*)}", http.StripPrefix("/assets", http.FileServer(Assets)))
 
-	fileroot := filepath.Join(expath, "files")
-	if _, err := os.Stat(fileroot); err != nil {
-		os.MkdirAll(fileroot, 0755)
-	}
-	lnksdcard := filepath.Join(fileroot, "sdcard")
-	if _, err := os.Stat(lnksdcard); err != nil {
-		os.Symlink("/sdcard", lnksdcard)
-	}
-	m.PathPrefix("/").Handler(fbHandler(fileroot))
+	// fileroot := filepath.Join(expath, "files")
+	// if _, err := os.Stat(fileroot); err != nil {
+	// 	os.MkdirAll(fileroot, 0755)
+	// }
+	// lnksdcard := filepath.Join(fileroot, "sdcard")
+	// if _, err := os.Stat(lnksdcard); err != nil {
+	// 	os.Symlink("/sdcard", lnksdcard)
+	// }
+	// m.PathPrefix("/").Handler(fbHandler(fileroot))
 
 	var handler = cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
