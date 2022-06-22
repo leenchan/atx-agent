@@ -925,7 +925,8 @@ func (server *Server) initHTTPServer() {
 			wsWrite(websocket.TextMessage, []byte("@minitouch service start failed: "+err.Error()))
 			return
 		}
-		unixSocketPath := minitouchSocketPath
+		// unixSocketPath := minitouchSocketPath
+		unixSocketPath := "@minitouchagent"
 		wsWrite(websocket.TextMessage, []byte("dial unix:"+unixSocketPath))
 		log.Printf("minitouch connection: %v", r.RemoteAddr)
 		retries := 0

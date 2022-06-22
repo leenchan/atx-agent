@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -510,11 +509,11 @@ func lazyInit() {
 	// if !isMinicapSupported() {
 	// 	minicapSocketPath = "@minicapagent"
 	// }
-	if !fileExists(path.Join(expath, "minitouch")) {
-		minitouchSocketPath = "@minitouchagent"
-	} else if sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk")); sdk > 28 { // Android Q..
-		minitouchSocketPath = "@minitouch"
-	}
+	// if !fileExists(path.Join(expath, "minitouch")) {
+	// 	minitouchSocketPath = "@minitouchagent"
+	// } else if sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk")); sdk > 28 { // Android Q..
+	// 	minitouchSocketPath = "@minitouch"
+	// }
 }
 
 func _watchRotation() {
@@ -777,25 +776,28 @@ func main() {
 		ArgsFunc: func() ([]string, error) {
 			// sdk, err := strconv.Atoi(getCachedProperty("ro.build.version.sdk"))
 			// if err != nil || sdk <= 28 { // Android P(sdk:28)
-			if err := installMinitouch(); err != nil {
-				return nil, err
-			}
-			minitouchSocketPath = "@minitouch"
-			return []string{fmt.Sprintf("%v/%v", expath, "minitouch")}, nil
-			// }
-			// minitouchSocketPath = "@minitouchagent"
-			// pmPathOutput, err := Command{
-			// 	Args:  []string{"pm", "path", "com.github.uiautomator"},
-			// 	Shell: true,
-			// }.CombinedOutputString()
-			// if err != nil {
+			// if err := installMinitouch(); err != nil {
 			// 	return nil, err
 			// }
-			// if !strings.HasPrefix(pmPathOutput, "package:") {
-			// 	return nil, errors.New("invalid pm path output: " + pmPathOutput)
+			// minitouchSocketPath = "@minitouch"
+			// return []string{fmt.Sprintf("%v/%v", expath, "minitouch")}, nil
 			// }
-			// packagePath := strings.TrimSpace(pmPathOutput[len("package:"):])
-			// return []string{"CLASSPATH=" + packagePath, "exec", "app_process", "/system/bin", "com.github.uiautomator.MinitouchAgent"}, nil
+			if err := installUiautomatorAPK(); err != nil {
+				return nil, err
+			}
+			minitouchSocketPath = "@minitouchagent"
+			pmPathOutput, err := Command{
+				Args:  []string{"pm", "path", "com.github.uiautomator"},
+				Shell: true,
+			}.CombinedOutputString()
+			if err != nil {
+				return nil, err
+			}
+			if !strings.HasPrefix(pmPathOutput, "package:") {
+				return nil, errors.New("invalid pm path output: " + pmPathOutput)
+			}
+			packagePath := strings.TrimSpace(pmPathOutput[len("package:"):])
+			return []string{"CLASSPATH=" + packagePath, "exec", "app_process", "/system/bin", "com.github.uiautomator.MinitouchAgent"}, nil
 		},
 		Shell: true,
 	})
