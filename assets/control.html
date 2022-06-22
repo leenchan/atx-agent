@@ -40,8 +40,9 @@
   .label.success { border: 1px solid rgb(54, 206, 7); color:rgb(54, 206, 7); }
   .label.warn { border: 1px solid rgb(236, 133, 15); color: rgb(236, 133, 15); }
 
+  .main {padding: 16px; margin: 0 auto;}
   .container { width: 100%; margin: 0 auto; max-width: 1280px;}
-  #main { background: #fff; color: #555; margin: 16px auto; display: flex; flex-direction: row; margin-top: 16px; box-shadow: 0 0 16px rgba(0,0,0,0.075); border-radius: 16px; overflow: hidden; }
+  #controller { background: #fff; color: #555; margin: 0 auto; display: flex; flex-direction: row; box-shadow: 0 0 16px rgba(0,0,0,0.075); border-radius: 16px; overflow: hidden; }
   #screen { display: block; margin: 0 auto; width: 100%; max-width: 420px; padding: 16px; background: #555; }
   #screen .screen-wrapper {min-height: 360px; background-color: #333; position: relative; overflow: hidden;}
   #canvas { display: inline; width: 100%; vertical-align: top; }
@@ -53,14 +54,14 @@
   #log > * + * { margin-top: 8px; }
   #log .label {margin-right: 6px; user-select: none;}
   #android-buttons { display: flex; justify-content: center; margin: 0; padding: 4px 0; background: #555;}
-  #android-buttons li {padding: 8px 12px; list-style: none; cursor: pointer; opacity: 0.8; transition: all 0.3s ease; color: #ccc; text-align: center; font-size: 12px; }
+  #android-buttons li {padding: 8px 12px; list-style: none; cursor: pointer; opacity: 0.8; transition: all 0.3s ease; color: #ccc; text-align: center; font-size: 12px; user-select: none; }
   #android-buttons li:hover { opacity: 1; background-color: #444; }
   #android-buttons li + li { border-left: 1px solid rgba(0,0,0,0.125); }
   #android-buttons .icon {margin-right: 6px; opacity: 0.5; filter: invert(1);}
   #send-text { display: flex; border: 1px solid #ccc; padding: 4px; border-radius: 8px; }
   #send-text input { flex: 1; border: none; background-color: #eee; border-radius: 4px; padding: 0 8px;}
   #send-text input:focus {outline: none; box-shadow: 2px 2px 0 rgb(0 0 0 / 13%) inset; }
-  #send-text button { border: none; padding: 0 8px; }
+  #send-text button { border: none; padding: 0 8px; user-select: none; }
   #send-text button + button { border-left: 1px solid #eee; }
   #send-text .icon {width: 16px; height: 16px; margin-right: 4px; opacity: 0.75;}
 
@@ -98,108 +99,111 @@
 
   *[data-keycode] {cursor: pointer; transition: all 0.3s ease;}
   @media (max-width: 576px) {
-    #main { flex-direction: column; box-shadow: unset; border-radius: 0; margin: 0; }
+    .main {padding: 0; margin: 0;}
+    #controller { flex-direction: column; box-shadow: unset; border-radius: 0; margin: 0; }
     #screen { padding: 0; max-width: unset; }
     #android-buttons li { font-size: 12px; padding: 8px;}
     #android-buttons li .icon { width: 12px; height: 12px; vertical-align: middle; }
+    html, body {overflow: hidden;}
   }
   
 </style>
 <body>
-  <div class="container" id="main">
-    <div id="screen">
-      <div class="screen-wrapper">
-        <canvas id="canvas"></canvas>
-        <div id="remote-control">
-          <div id="remote-control-left"></div>
-          <div id="remote-control-right">
-            <div id="remote-control-nav-fun">
-              <div id="remote-control-a">
-                <span data-keycode="88"><i class="icon icon-prev"></i></span>
-                <span data-keycode="87"><i class="icon icon-next"></i></span>
-              </div>
-              <div id="remote-control-nav">
-                <span></span>
-                <span data-keycode="19"><i class="icon icon-up"></i></span>
-                <span></span>
-                <span data-keycode="21"><i class="icon icon-up rotate270"></i></span>
-                <span data-keycode="66"><strong>OK</strong></span>
-                <span data-keycode="22"><i class="icon icon-up rotate90"></i></span>
-                <span></span>
-                <span data-keycode="20"><i class="icon icon-up rotate180"></i></span>
-                <span></span>
-              </div>
-              <div id="remote-control-b">
-                <!-- <span data-keycode="85"><i class="icon icon-pause"></i></span> -->
-                <span data-keycode="86"><i class="icon icon-stop"></i></span>
-                <span data-keycode="85"><i class="icon icon-play"></i></span>
-              </div>
-            </div>
-            <div id="remote-control-audio-number-chanel">
-              <div id="remote-control-audio">
-                <div class="key-group">
-                  <span data-keycode="24"><i class="icon icon-plus"></i></span>
-                  <span class="key-group-center"><i class="icon icon-sound"></i></span>
-                  <span data-keycode="25"><i class="icon icon-minus"></i></span>
+  <div class="main">
+    <div class="container" id="controller">
+      <div id="screen">
+        <div class="screen-wrapper">
+          <canvas id="canvas"></canvas>
+          <div id="remote-control">
+            <div id="remote-control-left"></div>
+            <div id="remote-control-right">
+              <div id="remote-control-nav-fun">
+                <div id="remote-control-a">
+                  <span data-keycode="88"><i class="icon icon-prev"></i></span>
+                  <span data-keycode="87"><i class="icon icon-next"></i></span>
+                </div>
+                <div id="remote-control-nav">
+                  <span></span>
+                  <span data-keycode="19"><i class="icon icon-up"></i></span>
+                  <span></span>
+                  <span data-keycode="21"><i class="icon icon-up rotate270"></i></span>
+                  <span data-keycode="66"><strong>OK</strong></span>
+                  <span data-keycode="22"><i class="icon icon-up rotate90"></i></span>
+                  <span></span>
+                  <span data-keycode="20"><i class="icon icon-up rotate180"></i></span>
+                  <span></span>
+                </div>
+                <div id="remote-control-b">
+                  <!-- <span data-keycode="85"><i class="icon icon-pause"></i></span> -->
+                  <span data-keycode="86"><i class="icon icon-stop"></i></span>
+                  <span data-keycode="85"><i class="icon icon-play"></i></span>
                 </div>
               </div>
-              <div id="remote-control-number">
-                <span data-keycode="8">1</span>
-                <span data-keycode="9">2</span>
-                <span data-keycode="10">3</span>
-                <span data-keycode="11">4</span>
-                <span data-keycode="12">5</span>
-                <span data-keycode="13">6</span>
-                <span data-keycode="14">7</span>
-                <span data-keycode="15">8</span>
-                <span data-keycode="16">9</span>
-                <span data-keycode="17">*</span>
-                <span data-keycode="7">0</span>
-                <span data-keycode="18">#</span>
-              </div>
-              <div id="remote-control-chanel">
-                <div class="key-group">
-                  <span data-keycode="166"><i class="icon icon-up"></i></span>
-                  <span class="key-group-center"><strong>CH</strong></span>
-                  <span data-keycode="167"><i class="icon icon-up rotate180"></i></span>
+              <div id="remote-control-audio-number-chanel">
+                <div id="remote-control-audio">
+                  <div class="key-group">
+                    <span data-keycode="24"><i class="icon icon-plus"></i></span>
+                    <span class="key-group-center"><i class="icon icon-sound"></i></span>
+                    <span data-keycode="25"><i class="icon icon-minus"></i></span>
+                  </div>
+                </div>
+                <div id="remote-control-number">
+                  <span data-keycode="8">1</span>
+                  <span data-keycode="9">2</span>
+                  <span data-keycode="10">3</span>
+                  <span data-keycode="11">4</span>
+                  <span data-keycode="12">5</span>
+                  <span data-keycode="13">6</span>
+                  <span data-keycode="14">7</span>
+                  <span data-keycode="15">8</span>
+                  <span data-keycode="16">9</span>
+                  <span data-keycode="17">*</span>
+                  <span data-keycode="7">0</span>
+                  <span data-keycode="18">#</span>
+                </div>
+                <div id="remote-control-chanel">
+                  <div class="key-group">
+                    <span data-keycode="166"><i class="icon icon-up"></i></span>
+                    <span class="key-group-center"><strong>CH</strong></span>
+                    <span data-keycode="167"><i class="icon icon-up rotate180"></i></span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        <ul id="android-buttons">
+          <li data-keycode="26"><i class="icon icon-power"></i>Power</li>
+          <!-- <li data-keycode="27">Camera</li> -->
+          <li data-keycode="187"><i class="icon icon-tasks"></i>Tasks</li>
+          <li data-keycode="3"><i class="icon icon-home"></i>Home</li>
+          <li data-keycode="4"><i class="icon icon-back"></i>Back</li>
+          <li data-keycode="82"><i class="icon icon-menu"></i>Menu</li>
+          <li id="open-control"><i class="icon icon-control"></i>Control</li>
+        </ul>
       </div>
-      <ul id="android-buttons">
-        <li data-keycode="26"><i class="icon icon-power"></i>Power</li>
-        <!-- <li data-keycode="27">Camera</li> -->
-        <li data-keycode="187"><i class="icon icon-tasks"></i>Tasks</li>
-        <li data-keycode="3"><i class="icon icon-home"></i>Home</li>
-        <li data-keycode="4"><i class="icon icon-back"></i>Back</li>
-        <li data-keycode="82"><i class="icon icon-menu"></i>Menu</li>
-        <li id="open-control"><i class="icon icon-control"></i>Control</li>
-      </ul>
-    </div>
-    <div id="control">
-      <div class="send-text" id="send-text">
-        <input />
-        <button id="run-cmd"><i class="icon icon-run"></i>Run</button>
-        <button id="send-text-to"><i class="icon icon-send"></i>Send</button>
-      </div>
-      <div class="log-wrapper">
-        <div id="log-control">
-          <i class="icon icon-clear" id="clear-log"></i>
+      <div id="control">
+        <div class="send-text" id="send-text">
+          <input />
+          <button id="run-cmd"><i class="icon icon-run"></i>Run</button>
+          <button id="send-text-to"><i class="icon icon-send"></i>Send</button>
         </div>
-        <div id="log"></div>
+        <div class="log-wrapper">
+          <div id="log-control">
+            <i class="icon icon-clear" id="clear-log"></i>
+          </div>
+          <div id="log"></div>
+        </div>
       </div>
     </div>
   </div>
-  
 </body>
 <script>
 /*jshint browser:true*/
 
 var 
   atxHost = location.host,
-  // atxHost = '192.168.3.214:7912',
+  atxHost = '192.168.3.214:7912',
   protocolScheme = location.toString().split(':')[0],
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
@@ -209,7 +213,7 @@ window.displayPhySize = undefined;
 window.disabledMinitouch = false;
 window.screenSize = undefined;
 
-var mainDOM = document.getElementById('main');
+var mainDOM = document.getElementById('controller');
 var BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 var canvas = document.getElementById('canvas'), g = canvas.getContext('2d');
 
@@ -241,11 +245,16 @@ function shell(options) {
   logAction(options.cmd);
   var xhr = new XMLHttpRequest();
   xhr.open('POST', apiHttpScheme + atxHost + '/shell', true);
-  xhr.setRequestHeader('Content-Type', "application/x-www-form-urlencoded");
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
   xhr.onreadystatechange = function(res) { // Call a function when the state changes.
     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
       if (typeof options.onSuccess == 'function') {
-        options.onSuccess(res);
+        var response = xhr.response;
+        try {
+          response = JSON.parse(response);
+        } catch (error) {
+        }
+        options.onSuccess(response);
       }
         // Request finished. Do processing here.
     }
@@ -253,9 +262,30 @@ function shell(options) {
   xhr.send("command=" + encodeURIComponent(options.cmd));
 }
 
+function rotate(options) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', apiHttpScheme + atxHost + '/info/rotation', true);
+  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+  xhr.onreadystatechange = function(res) { // Call a function when the state changes.
+    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+      if (typeof options.onSuccess == 'function') {
+        var response = xhr.response;
+        try {
+          response = JSON.parse(response);
+        } catch (error) {
+        }
+        options.onSuccess(response);
+      }
+        // Request finished. Do processing here.
+    }
+  }
+  xhr.send(JSON.stringify({"direction": options.rotation ? options.rotation : 0}));
+  // xhr.send("command=" + encodeURIComponent(options.cmd));
+}
+
 function initDisplay() {
   shell({cmd: 'dumpsys display', onSuccess: function(res) {
-    var data = JSON.parse(res.target.response);
+    var data = res;
     if (data.output) {
       // console.log(data.output)
       var orientationData = data.output.match(/orientation=[0-3]/);
@@ -283,8 +313,8 @@ wsMinicap.onerror = function() {
 wsMinicap.onmessage = function(message) {
   if (typeof message.data == 'string' && message.data.match(/rotation [0-9]+/)) {
     window.orientation = message.data.match(/[0-9]+/)[0];
-    // initDisplay();
-    // return;
+    initDisplay();
+    return;
   }
   var blob = new Blob([message.data], {type: 'image/jpeg'});
   var URL = window.URL || window.webkitURL;
@@ -314,7 +344,7 @@ wsMinicap.onmessage = function(message) {
 }
 wsMinicap.onopen = function() {
   console.log('onopen', arguments);
-  wsMinicap.send('1920x1080/0');
+  wsMinicap.send('1080x1920/0');
 };
 
 var wsMinitouch = new WebSocket(apiWebsocketScheme + atxHost + '/minitouch');
@@ -331,15 +361,11 @@ wsMinitouch.onmessage = function(message) {
   // console.log('minitouch: ' + message);
 };
 
-var pointersDown = {};
-var pointersMove = {};
-function clearPointer(index) {
-  if (pointersDown[index]) {
-    delete pointersDown[index];
-  }
-  if (pointersMove[index]) {
-    delete pointersMove[index];
-  }
+var pointersDown = [];
+var pointersMove = [];
+function clearPointer(pointerId) {
+  pointersDown = pointersDown.filter(p => p.pointerId !== pointerId);
+  pointersMove = pointersMove.filter(p => p.pointerId !== pointerId);
 }
 function minitouchJsonToCmd(obj) {
   if (!window.displayPhySize) {
@@ -386,6 +412,7 @@ function sendTouch(obj) {
         break;
     }
   }
+  
   if (wsMinitouch.readyState == 1 && window.orientation <= 90) {
     logAction(minitouchJsonToCmd(obj), 'minitouch');
     wsMinitouch.send(JSON.stringify(obj));
@@ -407,34 +434,43 @@ function sendTouch(obj) {
 }
 canvas.addEventListener('pointerdown', function(e) {
   if (e.button == 2) {return}
-  var event = { operation: 'd', index: e.pointerId - 1, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
+  var event = { pointerId: e.pointerId, operation: 'd', index: pointersDown.length, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
+  // console.log(e, event)
   sendTouch(event);
   sendTouch({ operation: 'c' });
-  pointersDown[e.pointerId - 1] = event;
+  pointersDown.push(event);
 });
 canvas.addEventListener('pointerup', function(e) {
   if (e.button == 2) {return}
-  sendTouch({ operation: 'u', index: e.pointerId - 1 });
-  sendTouch({ operation: 'c' });
-  clearPointer(e.pointerId - 1);
+  if (pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
+    sendTouch({ operation: 'u', index: pointersDown.map(function(p) {return p.pointerId}).indexOf(e.pointerId) });
+    sendTouch({ operation: 'c' });
+    clearPointer(e.pointerId);
+  }
 });
 canvas.addEventListener('pointerout', function(e) {
+  // console.log(e)
   if (e.button == 2) {return}
-  if (pointersDown[e.pointerId - 1]) {
-    sendTouch({ operation: 'u', index: e.pointerId - 1 });
+  if (pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
+    sendTouch({ operation: 'u', index: pointersDown.map(function(p) {return p.pointerId}).indexOf(e.pointerId) });
     sendTouch({ operation: 'c' });
-    clearPointer(e.pointerId - 1);
+    clearPointer(e.pointerId);
   }
 });
 canvas.addEventListener('pointermove', function(e) {
   if (e.button == 2) {return}
-  if (!pointersDown[e.pointerId - 1]) {
+  if (!pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
     return false;
   }
-  var event = { operation: 'm', index: e.pointerId - 1, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
+  var pointersMoveIndex = pointersMove.map(function(p) {return p.pointerId}).indexOf(e.pointerId);
+  var event = { pointerId: e.pointerId, operation: 'm', index: pointersMoveIndex >= 0 ? pointersMoveIndex : 0, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
   sendTouch(event);
   sendTouch({ operation: 'c' });
-  pointersMove[e.pointerId - 1] = event;
+  if (pointersMoveIndex >= 0) {
+    pointersMove.splice(pointersMoveIndex, 1, event);
+  } else {
+    pointersMove.push(event);
+  }
 });
 canvas.addEventListener('contextmenu', function(e) {
   e.preventDefault();
@@ -442,8 +478,52 @@ canvas.addEventListener('contextmenu', function(e) {
   return false;
 }, false);
 
+function unlockScreen() {
+  // console.log('Unlocking...')
+  if (wsMinitouch.readyState == 1) {
+    ['d 0 0.50 0.80 50', 'c', 'm 0 0.50 0.60 50', 'c', 'm 0 0.50 0.40 50', 'c', 'm 0 0.50 0.20 50', 'c', 'u 0', 'c'].forEach(function(o, index) {
+      var operation = o.split(' ');
+      var touch = {
+        operation: operation[0],
+        index: operation[1] !== undefined ? operation[1] * 1 : undefined,
+        xP: operation[2] !== undefined ? operation[2] * 1 : undefined,
+        yP: operation[3] !== undefined ? operation[3] * 1 : undefined,
+        pressure: operation[4] !== undefined ? operation[4] * 1 : undefined
+      };
+      sendTouch(touch);
+      // console.log(touch)
+    });
+  } else {
+    shell({ cmd: 'input swipe 126 459 413 472 1000' });
+  }
+}
+
+function toggleScreen() {
+  shell({ cmd: 'dumpsys nfc | grep mScreenState | tr -d "\n"', onSuccess: function(res) {
+    if (res && res.output) {
+      var screenState = res.output.split('=')[1];
+      console.log(screenState)
+      // 'OFF_LOCKED'
+      if (/OFF/.test(screenState)) {
+        shell({ cmd: 'input keyevent ' + 26, onSuccess: function() {
+          rotate({ rotation: window.orientation ? window.orientation / 90 : 0 });
+          if (/LOCKED/.test(screenState)) {
+            setTimeout(unlockScreen, 5000);
+          }
+        }});
+        return;
+      }
+    }
+    shell({ cmd: 'input keyevent ' + 26 });
+  }})
+}
+
 function inputKey(keycode) {
-  shell({cmd: 'input keyevent ' + keycode});
+  if (keycode == 26) {
+    toggleScreen();
+  } else {
+    shell({ cmd: 'input keyevent ' + keycode });
+  }
 }
 
 function inputText(text) {

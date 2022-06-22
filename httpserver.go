@@ -914,14 +914,6 @@ func (server *Server) initHTTPServer() {
 	}).Methods("DELETE")
 
 	m.HandleFunc("/minitouch", singleFightNewerWebsocket(func(w http.ResponseWriter, r *http.Request, ws *websocket.Conn) {
-		if err := installMinitouch(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		if !service.Running("minitouch") {
-			if err := service.Start("minitouch"); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		}
 		defer ws.Close()
 		const wsWriteWait = 10 * time.Second
 		wsWrite := func(messageType int, data []byte) error {

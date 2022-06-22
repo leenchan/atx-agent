@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"net"
 	"net/http"
@@ -157,6 +158,7 @@ func (c *Client) writePump() {
 		ticker.Stop()
 		c.conn.Close()
 	}()
+	lastMD5 := [16]byte{}
 	for {
 		var err error
 		select {
@@ -168,7 +170,11 @@ func (c *Client) writePump() {
 				return
 			}
 			if string(data[:2]) == "\xff\xd8" || string(data[:4]) == "\x89PNG" { // jpg or png data
-				err = c.conn.WriteMessage(websocket.BinaryMessage, data)
+				currMD5 := md5.Sum(data)
+				if lastMD5 != currMD5 {
+					lastMD5 = currMD5
+					err = c.conn.WriteMessage(websocket.BinaryMessage, data)
+				}
 			} else {
 				err = c.conn.WriteMessage(websocket.TextMessage, data)
 			}

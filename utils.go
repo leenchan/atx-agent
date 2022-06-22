@@ -371,7 +371,8 @@ func httpDownload(path string, urlStr string, perms os.FileMode) (written int64,
 	}
 	defer file.Close()
 	written, err = io.Copy(file, resp.Body)
-	log.Println("http download:", written)
+	log.Println("http download:", path, "("+strconv.FormatInt(int64(written/1024), 10)+"KB)")
+	// log.Println
 	return
 }
 
