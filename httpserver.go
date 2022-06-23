@@ -54,6 +54,35 @@ func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
 	return httputil.NewSingleHostReverseProxy(url), nil
 }
 
+func UploadFile(fieldName string, outputDir string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("File Upload Endpoint Hit")
+
+		r.ParseMultipartForm(128 << 20)
+		file, handler, err := r.FormFile(fieldName)
+		if err != nil {
+			fmt.Println("Error Retrieving the File")
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+		fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+		fmt.Printf("File Size: %+v\n", handler.Size)
+		fmt.Printf("MIME Header: %+v\n", handler.Header)
+
+		// Create a temporary file within our temp-images directory that follows
+		// a particular naming pattern
+		outputFile, err := os.OpenFile("/data/local/tmp/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Println(err)
+		}
+		io.Copy(outputFile, file)
+		defer outputFile.Close()
+		// return that we have successfully uploaded our file!
+		fmt.Fprintf(w, "Successfully Uploaded File\n")
+	}
+}
+
 func (server *Server) initHTTPServer() {
 	m := mux.NewRouter()
 
@@ -841,39 +870,44 @@ func (server *Server) initHTTPServer() {
 
 	// deprecated
 	m.HandleFunc("/install", func(w http.ResponseWriter, r *http.Request) {
-		var url = r.FormValue("url")
-		var tmpdir = r.FormValue("tmpdir")
-		if tmpdir == "" {
-			tmpdir = "/data/local/tmp"
+		fmt.Println(r.FormValue("file"))
+		if file := r.FormValue("file"); file != "" {
+			UploadFile("file", "")(w, r)
+		} else if url := r.FormValue("url"); url != "" {
+			url := r.FormValue("url")
+			tmpdir := r.FormValue("tmpdir")
+			if tmpdir == "" {
+				tmpdir = "/data/local/tmp"
+			}
+			filepath := TempFileName(tmpdir, ".apk")
+			key := background.HTTPDownload(url, filepath, 0644)
+			go func() {
+				defer os.Remove(filepath) // release sdcard space
+
+				state := background.Get(key)
+				state.Status = "downloading"
+				if err := background.Wait(key); err != nil {
+					log.Println("http download error")
+					state.Error = err.Error()
+					state.Message = "http download error"
+					state.Status = "failure"
+					return
+				}
+
+				state.Message = "installing"
+				state.Status = "installing"
+				if err := forceInstallAPK(filepath); err != nil {
+					state.Error = err.Error()
+					state.Message = "error install"
+					state.Status = "failure"
+				} else {
+					state.Message = "success installed"
+					state.Status = "success"
+				}
+			}()
+			io.WriteString(w, key)
 		}
-
-		filepath := TempFileName(tmpdir, ".apk")
-		key := background.HTTPDownload(url, filepath, 0644)
-		go func() {
-			defer os.Remove(filepath) // release sdcard space
-
-			state := background.Get(key)
-			state.Status = "downloading"
-			if err := background.Wait(key); err != nil {
-				log.Println("http download error")
-				state.Error = err.Error()
-				state.Message = "http download error"
-				state.Status = "failure"
-				return
-			}
-
-			state.Message = "installing"
-			state.Status = "installing"
-			if err := forceInstallAPK(filepath); err != nil {
-				state.Error = err.Error()
-				state.Message = "error install"
-				state.Status = "failure"
-			} else {
-				state.Message = "success installed"
-				state.Status = "success"
-			}
-		}()
-		io.WriteString(w, key)
+		io.WriteString(w, "PPPPP")
 	}).Methods("POST")
 
 	// deprecated
@@ -920,13 +954,17 @@ func (server *Server) initHTTPServer() {
 			ws.SetWriteDeadline(time.Now().Add(wsWriteWait))
 			return ws.WriteMessage(messageType, data)
 		}
+		unixSocketPath := "@minitouch"
 		wsWrite(websocket.TextMessage, []byte("start @minitouch service"))
 		if err := service.Start("minitouch"); err != nil && err != cmdctrl.ErrAlreadyRunning {
 			wsWrite(websocket.TextMessage, []byte("@minitouch service start failed: "+err.Error()))
-			return
+			wsWrite(websocket.TextMessage, []byte("start @minitouchagent service"))
+			if err := service.Start("minitouchagent"); err != nil && err != cmdctrl.ErrAlreadyRunning {
+				wsWrite(websocket.TextMessage, []byte("@minitouchagent service start failed: "+err.Error()))
+				return
+			}
+			unixSocketPath = "@minitouchagent"
 		}
-		// unixSocketPath := minitouchSocketPath
-		unixSocketPath := "@minitouchagent"
 		wsWrite(websocket.TextMessage, []byte("dial unix:"+unixSocketPath))
 		log.Printf("minitouch connection: %v", r.RemoteAddr)
 		retries := 0

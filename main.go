@@ -771,17 +771,24 @@ func main() {
 
 	service.Start("apkagent")
 
+	// sdk, err := strconv.Atoi(getCachedProperty("ro.build.version.sdk"))
+	// if err != nil || sdk <= 28 {
+	// }
 	service.Add("minitouch", cmdctrl.CommandInfo{
 		MaxRetries: 2,
 		ArgsFunc: func() ([]string, error) {
-			// sdk, err := strconv.Atoi(getCachedProperty("ro.build.version.sdk"))
-			// if err != nil || sdk <= 28 { // Android P(sdk:28)
-			// if err := installMinitouch(); err != nil {
-			// 	return nil, err
-			// }
-			// minitouchSocketPath = "@minitouch"
-			// return []string{fmt.Sprintf("%v/%v", expath, "minitouch")}, nil
-			// }
+			if err := installMinitouch(); err != nil {
+				return nil, err
+			}
+			minitouchSocketPath = "@minitouch"
+			return []string{fmt.Sprintf("%v/%v", expath, "minitouch")}, nil
+		},
+		Shell: true,
+	})
+
+	service.Add("minitouchagent", cmdctrl.CommandInfo{
+		MaxRetries: 2,
+		ArgsFunc: func() ([]string, error) {
 			if err := installUiautomatorAPK(); err != nil {
 				return nil, err
 			}

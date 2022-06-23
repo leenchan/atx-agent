@@ -195,6 +195,11 @@
           <div id="log"></div>
         </div>
       </div>
+      <form enctype="multipart/form-data" action="http://192.168.3.214:7912/install" method="post">
+        <input type="file" name="file" />
+        <input type="hidden" name="token" value="{{.}}"/>
+        <input type="submit" value="upload" />
+      </form>
     </div>
   </div>
 </body>
@@ -203,7 +208,7 @@
 
 var 
   atxHost = location.host,
-  // atxHost = '192.168.3.214:7912',
+  atxHost = '192.168.3.214:7912',
   protocolScheme = location.toString().split(':')[0],
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
@@ -302,71 +307,163 @@ function initDisplay() {
   }});
 }
 
-var wsMinicap = new WebSocket(apiWebsocketScheme + atxHost + '/minicap');
-wsMinicap.binaryType = 'blob';
-wsMinicap.onclose = function() {
-  console.log('onclose', arguments);
-}
-wsMinicap.onerror = function() {
-  console.log('onerror', arguments);
-}
-wsMinicap.onmessage = function(message) {
-  if (typeof message.data == 'string' && message.data.match(/rotation [0-9]+/)) {
-    window.orientation = message.data.match(/[0-9]+/)[0];
-    initDisplay();
-    return;
+function createMinicapWebsocket(host) {
+  var ws = new WebSocket(apiWebsocketScheme + atxHost + '/minicap');
+  ws.binaryType = 'blob';
+  ws.onclose = function() {
+    console.log('onclose', arguments);
   }
-  var blob = new Blob([message.data], {type: 'image/jpeg'});
-  var URL = window.URL || window.webkitURL;
-  var img = new Image();
-  img.onload = function() {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    mainDOM.classList.add('horizontal');
-    if (img.width >= img.height) {
-      mainDOM.classList.add('horizontal');
-    } else {
-      mainDOM.classList.remove('horizontal');
-    }
-    if (img.width + 'x' + img.height != window.screenSize) {
+  ws.onerror = function() {
+    console.log('onerror', arguments);
+  }
+  ws.onmessage = function(message) {
+    if (typeof message.data == 'string' && message.data.match(/rotation [0-9]+/)) {
+      window.orientation = message.data.match(/[0-9]+/)[0];
       initDisplay();
-      window.screenSize = img.width + 'x' + img.height;
+      return;
     }
-    g.drawImage(img, 0, 0);
-    img.onload = null;
-    img.src = BLANK_IMG;
-    img = null;
-    u = null;
-    blob = null;
+    var blob = new Blob([message.data], {type: 'image/jpeg'});
+    var URL = window.URL || window.webkitURL;
+    var img = new Image();
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      mainDOM.classList.add('horizontal');
+      if (img.width >= img.height) {
+        mainDOM.classList.add('horizontal');
+      } else {
+        mainDOM.classList.remove('horizontal');
+      }
+      if (img.width + 'x' + img.height != window.screenSize) {
+        initDisplay();
+        window.screenSize = img.width + 'x' + img.height;
+      }
+      g.drawImage(img, 0, 0);
+      img.onload = null;
+      img.src = BLANK_IMG;
+      img = null;
+      u = null;
+      blob = null;
+    };
+    var u = URL.createObjectURL(blob);
+    img.src = u;
+  }
+  ws.onopen = function() {
+    console.log('onopen', arguments);
+    // ws.send('1080x1920/0');
   };
-  var u = URL.createObjectURL(blob);
-  img.src = u;
+  return ws;
 }
-wsMinicap.onopen = function() {
-  console.log('onopen', arguments);
-  wsMinicap.send('1080x1920/0');
-};
 
-var wsMinitouch = new WebSocket(apiWebsocketScheme + atxHost + '/minitouch');
-wsMinitouch.onclose = function() {
-  console.log('onclose', arguments);
-};
-wsMinitouch.onerror = function() {
-  console.log('onerror', arguments);
-};
-wsMinitouch.onopen = function() {
-  console.log('onopen', arguments);
-};
-wsMinitouch.onmessage = function(message) {
-  // console.log('minitouch: ' + message);
-};
+function createMinitouchWebsocket(host) {
+  var ws = new WebSocket(apiWebsocketScheme + atxHost + '/minitouch');
+  ws.onclose = function() {
+    console.log('onclose', arguments);
+  };
+  ws.onerror = function() {
+    console.log('onerror', arguments);
+  };
+  ws.onopen = function() {
+    console.log('onopen', arguments);
+  };
+  ws.onmessage = function(message) {
+    // console.log('minitouch: ' + message);
+  };
+  return ws;
+}
 
-var pointersDown = [];
-var pointersMove = [];
+function unlockScreen() {
+  // console.log('Unlocking...')
+  var retries = 5
+  var unlockIntance = setInterval(function() {
+    if (retries === 0) {
+      clearInterval(unlockIntance);
+    }
+    retries--;
+    shell({ cmd: 'dumpsys window | grep mCurrentFocus | grep -q StatusBar && echo 1 || echo 0', onSuccess: function(res) {
+      if (res && res.output) {
+        if (/0/.test(res.output)) {
+          clearInterval(unlockIntance);
+        }
+        if (/1/.test(res.output)) {
+          if (wsMinitouch.readyState == 1) {
+            ['d 0 0.50 0.80 50', 'c', 'm 0 0.50 0.60 50', 'c', 'm 0 0.50 0.40 50', 'c', 'm 0 0.50 0.20 50', 'c', 'u 0', 'c'].forEach(function(o, index) {
+              var operation = o.split(' ');
+              var touch = {
+                operation: operation[0],
+                index: operation[1] !== undefined ? operation[1] * 1 : undefined,
+                xP: operation[2] !== undefined ? operation[2] * 1 : undefined,
+                yP: operation[3] !== undefined ? operation[3] * 1 : undefined,
+                pressure: operation[4] !== undefined ? operation[4] * 1 : undefined
+              };
+              sendTouch(touch);
+              // console.log(touch)
+            });
+          } else {
+            shell({ cmd: 'input swipe 126 459 413 472 1000' });
+          }
+        }
+      }
+    }});
+  }, 1000);
+
+}
+
+function toggleScreen() {
+  shell({ cmd: 'dumpsys display | grep mScreenState', onSuccess: function(res) {
+    if (res && res.output) {
+      if (/OFF/.test(res.output)) {
+        shell({ cmd: 'input keyevent ' + 26, onSuccess: function() {
+          rotate({ rotation: window.orientation ? window.orientation / 90 : 0 });
+          unlockScreen();
+        }});
+        return;
+      }
+    }
+    shell({ cmd: 'input keyevent ' + 26 });
+  }});
+}
+
+function inputKey(keycode) {
+  if (keycode == 26) {
+    toggleScreen();
+  } else {
+    shell({ cmd: 'input keyevent ' + keycode });
+  }
+}
+
+function inputText(text) {
+  shell({cmd: 'input text "' + text + '"'});
+}
+
+function sendKeybordCode(e) {
+	var keyCode;
+	var keyMap = {
+		['Escape']: 4, ['Backspace']: 67,
+		// ['.']: 56, [';']: 74, ['/']: 76,
+		['ArrowLeft']: 21, ['ArrowUp']: 19, ['ArrowRight']: 22, ['ArrowDown']: 20, ['Enter']: 66, ['Space']: 62,
+	}
+	if (e.keyCode >= 65 && e.keyCode <= 90) {
+		keyCode = 29 + (e.keyCode * 1 - 65);
+	} else if (e.keyCode >= 48 && e.keyCode <= 57) {
+		keyCode = 7 + (e.keyCode * 1 - 48);
+	} else if (keyMap[e.key]) {
+		keyCode = keyMap[e.key];
+	}
+	if (e.key.length == 1) {
+		inputText(e.key);
+	} else if (keyCode) {
+		inputKey(keyCode);
+	} else {
+	}
+	console.log('keybord_code', e.key, e.keyCode);
+}
+
 function clearPointer(pointerId) {
   pointersDown = pointersDown.filter(p => p.pointerId !== pointerId);
   pointersMove = pointersMove.filter(p => p.pointerId !== pointerId);
 }
+
 function minitouchJsonToCmd(obj) {
   if (!window.displayPhySize) {
     return;
@@ -388,6 +485,7 @@ function minitouchJsonToCmd(obj) {
   });
   return cmd;
 }
+
 function sendTouch(obj) {
   var xP, yP;
   if (obj.xP || obj.yP) {
@@ -412,7 +510,6 @@ function sendTouch(obj) {
         break;
     }
   }
-  
   if (wsMinitouch.readyState == 1 && window.orientation <= 90) {
     logAction(minitouchJsonToCmd(obj), 'minitouch');
     wsMinitouch.send(JSON.stringify(obj));
@@ -432,6 +529,13 @@ function sendTouch(obj) {
     }
   }
 }
+
+var wsMinicap = createMinicapWebsocket();
+var wsMinitouch = createMinitouchWebsocket();
+
+var pointersDown = [];
+var pointersMove = [];
+
 canvas.addEventListener('pointerdown', function(e) {
   if (e.button == 2) {return}
   var event = { pointerId: e.pointerId, operation: 'd', index: pointersDown.length, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
@@ -478,81 +582,6 @@ canvas.addEventListener('contextmenu', function(e) {
   return false;
 }, false);
 
-function unlockScreen() {
-  // console.log('Unlocking...')
-  if (wsMinitouch.readyState == 1) {
-    ['d 0 0.50 0.80 50', 'c', 'm 0 0.50 0.60 50', 'c', 'm 0 0.50 0.40 50', 'c', 'm 0 0.50 0.20 50', 'c', 'u 0', 'c'].forEach(function(o, index) {
-      var operation = o.split(' ');
-      var touch = {
-        operation: operation[0],
-        index: operation[1] !== undefined ? operation[1] * 1 : undefined,
-        xP: operation[2] !== undefined ? operation[2] * 1 : undefined,
-        yP: operation[3] !== undefined ? operation[3] * 1 : undefined,
-        pressure: operation[4] !== undefined ? operation[4] * 1 : undefined
-      };
-      sendTouch(touch);
-      // console.log(touch)
-    });
-  } else {
-    shell({ cmd: 'input swipe 126 459 413 472 1000' });
-  }
-}
-
-function toggleScreen() {
-  shell({ cmd: 'dumpsys nfc | grep mScreenState | tr -d "\n"', onSuccess: function(res) {
-    if (res && res.output) {
-      var screenState = res.output.split('=')[1];
-      console.log(screenState)
-      // 'OFF_LOCKED'
-      if (/OFF/.test(screenState)) {
-        shell({ cmd: 'input keyevent ' + 26, onSuccess: function() {
-          rotate({ rotation: window.orientation ? window.orientation / 90 : 0 });
-          if (/LOCKED/.test(screenState)) {
-            setTimeout(unlockScreen, 5000);
-          }
-        }});
-        return;
-      }
-    }
-    shell({ cmd: 'input keyevent ' + 26 });
-  }})
-}
-
-function inputKey(keycode) {
-  if (keycode == 26) {
-    toggleScreen();
-  } else {
-    shell({ cmd: 'input keyevent ' + keycode });
-  }
-}
-
-function inputText(text) {
-  shell({cmd: 'input text "' + text + '"'});
-}
-
-function sendKeybordCode(e) {
-	var keyCode;
-	var keyMap = {
-		['Escape']: 4, ['Backspace']: 67,
-		// ['.']: 56, [';']: 74, ['/']: 76,
-		['ArrowLeft']: 21, ['ArrowUp']: 19, ['ArrowRight']: 22, ['ArrowDown']: 20, ['Enter']: 66, ['Space']: 62,
-	}
-	if (e.keyCode >= 65 && e.keyCode <= 90) {
-		keyCode = 29 + (e.keyCode * 1 - 65);
-	} else if (e.keyCode >= 48 && e.keyCode <= 57) {
-		keyCode = 7 + (e.keyCode * 1 - 48);
-	} else if (keyMap[e.key]) {
-		keyCode = keyMap[e.key];
-	}
-	if (e.key.length == 1) {
-		inputText(e.key);
-	} else if (keyCode) {
-		inputKey(keyCode);
-	} else {
-	}
-	console.log('keybord_code', e.key, e.keyCode);
-}
-
 document.addEventListener('keydown', function(e) {
   // console.log(e)
 });
@@ -563,27 +592,26 @@ document.addEventListener('keyup', function(e) {
   sendKeybordCode(e)
 });
 
-var sendTextButton = document.getElementById('send-text-to');
+var sendTextButton = document.getElementById('send-text-to'),
+  runCmdButton = document.getElementById('run-cmd'),
+  androidButtons = document.querySelectorAll('*[data-keycode]'),
+  clearLogButton = document.getElementById('clear-log'),
+  controlButton = document.getElementById('open-control');
 sendTextButton.addEventListener('click', function() {
   var text = document.querySelector('#send-text input').value;
   inputText(text);
 });
-var runCmdButton = document.getElementById('run-cmd');
 runCmdButton.addEventListener('click', function() {
   var text = document.querySelector('#send-text input').value;
   shell({ cmd: text });
 });
-
-var androidButtons = document.querySelectorAll('*[data-keycode]');
 androidButtons.forEach(function(button) {
   button.addEventListener('click', function(e) {
     var keyCode = this.getAttribute('data-keycode');
     inputKey(keyCode);
   });
 });
-var clearLogButton = document.getElementById('clear-log');
 clearLogButton.addEventListener('click', logClear);
-var controlButton = document.getElementById('open-control');
 controlButton.addEventListener('click', function() {
   var controlDOM = document.getElementById('remote-control');
   if (controlDOM.classList.contains('open')) {
