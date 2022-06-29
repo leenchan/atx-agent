@@ -54,33 +54,28 @@ func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
 	return httputil.NewSingleHostReverseProxy(url), nil
 }
 
-func UploadFile(fieldName string, outputDir string) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("File Upload Endpoint Hit")
-
-		r.ParseMultipartForm(128 << 20)
-		file, handler, err := r.FormFile(fieldName)
-		if err != nil {
-			fmt.Println("Error Retrieving the File")
-			fmt.Println(err)
-			return
-		}
-		defer file.Close()
-		fmt.Printf("Uploaded File: %+v\n", handler.Filename)
-		fmt.Printf("File Size: %+v\n", handler.Size)
-		fmt.Printf("MIME Header: %+v\n", handler.Header)
-
-		// Create a temporary file within our temp-images directory that follows
-		// a particular naming pattern
-		outputFile, err := os.OpenFile("/data/local/tmp/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			fmt.Println(err)
-		}
-		io.Copy(outputFile, file)
-		defer outputFile.Close()
-		// return that we have successfully uploaded our file!
-		fmt.Fprintf(w, "Successfully Uploaded File\n")
+func UploadFile(w http.ResponseWriter, r *http.Request) (string, error) {
+	dir := "/data/local/tmp" + "/"
+	log.Println("File Upload Endpoint Hit")
+	r.ParseMultipartForm(128 << 20)
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		return "", err
 	}
+	defer file.Close()
+	log.Printf("Uploaded File: %+v", handler.Filename)
+	log.Printf("File Size: %+v", handler.Size)
+	log.Printf("MIME Header: %+v", handler.Header)
+	outputFile, err := os.OpenFile(dir+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	defer outputFile.Close()
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(outputFile, file); err != nil {
+		return "", err
+	}
+	log.Printf("Successfully Uploaded File")
+	return dir + handler.Filename, nil
 }
 
 func (server *Server) initHTTPServer() {
@@ -556,6 +551,17 @@ func (server *Server) initHTTPServer() {
 		}
 	}).Methods("DELETE")
 
+	// Install Uiautomator
+	m.HandleFunc("/uiautomator", func(w http.ResponseWriter, r *http.Request) {
+		msg := "success"
+		if err := installUiautomatorAPK(); err != nil {
+			msg = err.Error()
+		}
+		renderJSON(w, map[string]interface{}{
+			"status": msg,
+		})
+	}).Methods("PUT")
+
 	// Deprecated
 	m.HandleFunc("/uiautomator", func(w http.ResponseWriter, r *http.Request) {
 		running := service.Running("uiautomator")
@@ -870,15 +876,14 @@ func (server *Server) initHTTPServer() {
 
 	// deprecated
 	m.HandleFunc("/install", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.FormValue("file"))
-		if file := r.FormValue("file"); file != "" {
-			UploadFile("file", "")(w, r)
-		} else if url := r.FormValue("url"); url != "" {
+		tmpdir := r.FormValue("tmpdir")
+		if tmpdir == "" {
+			tmpdir = "/data/local/tmp"
+		}
+		filepath, err := UploadFile(w, r)
+		defer os.Remove(filepath)
+		if err != nil {
 			url := r.FormValue("url")
-			tmpdir := r.FormValue("tmpdir")
-			if tmpdir == "" {
-				tmpdir = "/data/local/tmp"
-			}
 			filepath := TempFileName(tmpdir, ".apk")
 			key := background.HTTPDownload(url, filepath, 0644)
 			go func() {
@@ -906,8 +911,14 @@ func (server *Server) initHTTPServer() {
 				}
 			}()
 			io.WriteString(w, key)
+		} else {
+			if err := forceInstallAPK(filepath); err != nil {
+				log.Println(err)
+				io.WriteString(w, err.Error())
+				return
+			}
 		}
-		io.WriteString(w, "PPPPP")
+		io.WriteString(w, "0")
 	}).Methods("POST")
 
 	// deprecated
@@ -956,8 +967,7 @@ func (server *Server) initHTTPServer() {
 		}
 		unixSocketPath := "@minitouch"
 		wsWrite(websocket.TextMessage, []byte("start @minitouch service"))
-		if err := service.Start("minitouch"); err != nil && err != cmdctrl.ErrAlreadyRunning {
-			wsWrite(websocket.TextMessage, []byte("@minitouch service start failed: "+err.Error()))
+		if !service.Running("minitouch") {
 			wsWrite(websocket.TextMessage, []byte("start @minitouchagent service"))
 			if err := service.Start("minitouchagent"); err != nil && err != cmdctrl.ErrAlreadyRunning {
 				wsWrite(websocket.TextMessage, []byte("@minitouchagent service start failed: "+err.Error()))
@@ -995,7 +1005,7 @@ func (server *Server) initHTTPServer() {
 				}
 				log.Printf("unix %s connected, accepting requests", unixSocketPath)
 				retries = 0 // connected, reset retries
-				err = drainTouchRequests(conn, operC)
+				err = drainTouchRequests(conn, operC, unixSocketPath)
 				conn.Close()
 				if err != nil {
 					log.Println("drain touch requests err:", err)
@@ -1034,6 +1044,26 @@ func (server *Server) initHTTPServer() {
 	minicapHandler := broadcastWebsocket()
 	m.HandleFunc("/minicap/broadcast", minicapHandler).Methods("GET")
 	m.HandleFunc("/minicap", minicapHandler).Methods("GET")
+
+	m.HandleFunc("/sl4a", func(w http.ResponseWriter, r *http.Request) {
+		// https://github.com/kuri65536/sl4a/blob/master/docs/ApiReference.md
+		activity := r.FormValue("activity")
+		switch activity {
+		case "ttsSpeak":
+			arg_a := r.FormValue("arg_a")
+			runShell(
+				"am", "start",
+				"-a", "com.googlecode.android_scripting.action.LAUNCH_BACKGROUND_SCRIPT",
+				"-n", "com.googlecode.android_scripting/.activity.ScriptingLayerServiceLauncher",
+				"-e", "com.googlecode.android_scripting.extra.SCRIPT_PATH", "/data/local/tmp/test.py",
+				"-e", "activity", activity,
+				"-e", "arg_a", arg_a,
+			)
+		}
+		renderJSON(w, map[string]interface{}{
+			"status": "success",
+		})
+	}).Methods("POST")
 
 	// FileBrowser
 	m.HandleFunc("/fb", func(w http.ResponseWriter, r *http.Request) {

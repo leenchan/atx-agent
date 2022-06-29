@@ -24,7 +24,7 @@ type TouchRequest struct {
 }
 
 // coord(0, 0) is always left-top conner, no matter the rotation changes
-func drainTouchRequests(conn net.Conn, reqC chan TouchRequest) error {
+func drainTouchRequests(conn net.Conn, reqC chan TouchRequest, unixSocketPath string) error {
 	var maxX, maxY int
 	var flag string
 	var ver int
@@ -56,7 +56,7 @@ func drainTouchRequests(conn net.Conn, reqC chan TouchRequest) error {
 				pressure = maxPressure - 1
 			}
 			line := fmt.Sprintf("%s %d %d %d %d\n", req.Operation, req.Index, posX, posY, pressure)
-			log.Debugf("write to @minitouch %v", line)
+			log.Debugf("write to %s %v", unixSocketPath, line)
 			_, err = conn.Write([]byte(line))
 		case "u":
 			_, err = conn.Write([]byte(fmt.Sprintf("u %d\n", req.Index)))

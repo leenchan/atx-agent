@@ -190,7 +190,7 @@ func (cc *CommandCtrl) Running(name string) bool {
 	if !ok {
 		return false
 	}
-	return pkeeper.keeping
+	return pkeeper.running
 }
 
 // keep process running

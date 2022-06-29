@@ -41,7 +41,7 @@ func (am *APKManager) Install() error {
 	sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk"))
 	cmds := []string{"pm", "install", "-d", "-r", am.Path}
 	if sdk >= 23 { // android 6.0
-		cmds = []string{"pm", "install", "-d", "-r", "-g", am.Path}
+		cmds = []string{"pm", "install", "-d", "-r", "-g", "\"" + am.Path + "\""}
 	}
 	out, err := runShell(cmds...)
 	if err != nil {

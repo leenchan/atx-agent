@@ -790,6 +790,7 @@ func main() {
 		MaxRetries: 2,
 		ArgsFunc: func() ([]string, error) {
 			if err := installUiautomatorAPK(); err != nil {
+				log.Println(err)
 				return nil, err
 			}
 			minitouchSocketPath = "@minitouchagent"
