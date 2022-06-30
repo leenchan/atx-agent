@@ -1045,21 +1045,55 @@ func (server *Server) initHTTPServer() {
 	m.HandleFunc("/minicap/broadcast", minicapHandler).Methods("GET")
 	m.HandleFunc("/minicap", minicapHandler).Methods("GET")
 
+	// Install SL4A and Python
+	m.HandleFunc("/sl4a", func(w http.ResponseWriter, r *http.Request) {
+		if err := installPythonForAndroid(); err == nil {
+			log.Println("Success install Python For Android")
+			renderJSON(w, map[string]interface{}{
+				"status": "success",
+			})
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}).Methods("PUT")
 	m.HandleFunc("/sl4a", func(w http.ResponseWriter, r *http.Request) {
 		// https://github.com/kuri65536/sl4a/blob/master/docs/ApiReference.md
-		activity := r.FormValue("activity")
-		switch activity {
-		case "ttsSpeak":
-			arg_a := r.FormValue("arg_a")
-			runShell(
-				"am", "start",
-				"-a", "com.googlecode.android_scripting.action.LAUNCH_BACKGROUND_SCRIPT",
-				"-n", "com.googlecode.android_scripting/.activity.ScriptingLayerServiceLauncher",
-				"-e", "com.googlecode.android_scripting.extra.SCRIPT_PATH", "/data/local/tmp/test.py",
-				"-e", "activity", activity,
-				"-e", "arg_a", arg_a,
-			)
+		// python2: sl4a.py / python3: sl4a.py3
+		scheme := r.URL.Scheme
+		if scheme == "" {
+			scheme = "http"
 		}
+		baseUrl := scheme + "://" + r.Host
+		sl4aBin := filepath.Join(expath, "sl4a.py3")
+		if !fileExists(sl4aBin) {
+			if _, err := httpDownload(sl4aBin, baseUrl+"/assets/sl4a.py", 0755); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		args := []string{
+			"am", "start",
+			"-a", "com.googlecode.android_scripting.action.LAUNCH_BACKGROUND_SCRIPT",
+			// "-a", "com.googlecode.android_scripting.action.LAUNCH_FOREGROUND_SCRIPT",
+			"-n", "com.googlecode.android_scripting/.activity.ScriptingLayerServiceLauncher",
+			"-e", "com.googlecode.android_scripting.extra.SCRIPT_PATH", sl4aBin,
+		}
+		activity := r.FormValue("activity")
+		if activity == "" {
+			renderJSON(w, map[string]interface{}{
+				"error": "Please pass activity",
+			})
+			return
+		}
+		args = append(args, []string{"-e", "activity", activity}...)
+		for i := 1; i <= 5; i++ {
+			argName := "arg" + strconv.Itoa(i)
+			if r.FormValue(argName) != "" {
+				args = append(args, []string{"-e", argName, "\"" + r.FormValue(argName) + "\""}...)
+			}
+		}
+		log.Println(args)
+		runShell(args...)
 		renderJSON(w, map[string]interface{}{
 			"status": "success",
 		})

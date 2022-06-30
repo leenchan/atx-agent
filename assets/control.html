@@ -263,9 +263,8 @@
 /*jshint browser:true*/
 
 var 
-  atxHost = location.host,
-  // atxHost = '192.168.100.210:7912',
   protocolScheme = location.toString().split(':')[0],
+  atxHost = /http/.test(protocolScheme) ? location.host : '192.168.3.214:7912',
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
 
@@ -785,7 +784,7 @@ runCmdButton.addEventListener('click', function() {
   shell({ cmd: textInput.value });
 });
 textToSpeechButton.addEventListener('click', function() {
-  sl4aApi({ activity: 'ttsSpeak', arg_a: textInput.value.replace(/\s+/, ',') });
+  sl4aApi({ activity: 'ttsSpeak', arg1: textInput.value.replace(/\s+/g, ',') });
 });
 androidButtons.forEach(function(button) {
   button.addEventListener('click', function(e) {

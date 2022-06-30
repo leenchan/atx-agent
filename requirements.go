@@ -142,6 +142,38 @@ func installMinitouch() error {
 	return err
 }
 
+func installPythonForAndroid() error {
+	if pi, err := androidutils.StatPackage("com.googlecode.android_scripting"); err == nil {
+		fmt.Printf("SL4A\nversion name:(%s)\nversion code:(%d)\n", pi.Version.Name, pi.Version.Code)
+	} else {
+		abi := getCachedProperty("ro.product.cpu.abi")
+		abiMap := map[string]string{"armeabi-v7a": "armv7", "armeabi": "arm", "x86": "x86", "mips": "mips"}
+		arch, ok := abiMap[abi]
+		if !ok {
+			return errors.New("Sorry, not support this Arch.")
+		}
+		sl4aApkUrl := "https://github.com/kuri65536/sl4a/releases/download/6.2.0/sl4a-r6.2.0-" + arch + "-debug.apk"
+		if _, err := httpDownload(filepath.Join(expath, "sl4a.apk"), sl4aApkUrl, 0644); err != nil {
+			return err
+		}
+		if err := forceInstallAPK(filepath.Join(expath, "sl4a.apk")); err != nil {
+			return err
+		}
+	}
+	if pi, err := androidutils.StatPackage("com.googlecode.pythonforandroid"); err == nil {
+		fmt.Printf("Python For Android\nversion name:(%s)\nversion code:(%d)\n", pi.Version.Name, pi.Version.Code)
+	} else {
+		pythonforandroidApkUrl := "https://github.com/kuri65536/python-for-android/releases/download/r32/Python3ForAndroid-debug.apk"
+		if _, err := httpDownload(filepath.Join(expath, "python_for_android.apk"), pythonforandroidApkUrl, 0644); err != nil {
+			return err
+		}
+		if err := forceInstallAPK(filepath.Join(expath, "python_for_android.apk")); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func installFileBrowser() error {
 	expath, _ = os.Getwd()
 	dlDir := filepath.Join(expath, "dl")
