@@ -68,21 +68,21 @@
   #controller { background: #fff; color: #555; margin: 0 auto; display: flex; flex-direction: row; box-shadow: 0 0 16px rgba(0,0,0,0.075); border-radius: 16px; overflow: hidden; }
   #screen { display: block; margin: 0 auto; width: 100%; max-width: 420px; padding: 16px; background: #555; }
   #screen .screen-wrapper {min-height: 360px; background-color: #333; position: relative; overflow: hidden;}
-  #canvas { display: block; width: 100%; vertical-align: top; }
-  #control { flex: 1; padding: 16px; display: flex; flex-direction: column; }
+  #canvas { display: block; width: 100%; }
+  #control { flex: 1; padding: 16px; display: flex; flex-direction: column; position: relative; }
   #control-open, #control-close {display: none;}
-  .log-wrapper {margin-top: 16px; min-height: 300px; flex: 1; overflow: hidden; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; background-color: #fff; }
+  .log-wrapper {display: flex; flex-direction: column; width: 100%; margin-top: 16px; min-height: 320px; flex: 1; overflow: hidden; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; background-color: #fff; }
   #log-control {display: flex; height: 32px; border-bottom: 1px solid #eee; padding: 6px; justify-content: right;}
   #log-control .icon { width: 16px; height: 16px; cursor: pointer;}
   #log-control > * + * {margin-left: 8px;}
-  #log { overflow: auto; padding: 8px; height: 268px; }
+  #log { overflow: auto; padding: 8px; height: 268px; flex: 1; }
   #log > * + * { margin-top: 8px; }
   #log .label {margin-right: 6px; user-select: none;}
   #android-buttons { display: flex; justify-content: center; margin: 0; padding: 4px 0; background: #555;}
-  #android-buttons li {padding: 8px 12px; list-style: none; cursor: pointer; opacity: 0.8; transition: all 0.3s ease; color: #ccc; text-align: center; font-size: 12px; user-select: none; }
+  #android-buttons li {padding: 8px 12px; list-style: none; cursor: pointer; opacity: 0.8; transition: all 0.3s ease; color: #ccc; text-align: center; font-size: 11px; user-select: none; }
   #android-buttons li:hover { opacity: 1; background-color: #444; }
   #android-buttons li + li { border-left: 1px solid rgba(0,0,0,0.125); }
-  #android-buttons .icon {margin-right: 6px; opacity: 0.5; filter: invert(1);}
+  #android-buttons .icon {margin-bottom: 6px; opacity: 0.5; filter: invert(1); height: 24px; width: 24px; }
   #send-text { display: flex; background: #fff; border: 1px solid #ccc; padding: 4px; border-radius: 8px; }
   #send-text input { flex: 1; border: none; background-color: #eee; border-radius: 4px; padding: 0 8px;}
   #send-text input:focus {outline: none; box-shadow: 2px 2px 0 rgb(0 0 0 / 13%) inset; }
@@ -90,18 +90,17 @@
   #send-text button + button { border-left: 1px solid #eee; }
   #send-text .icon {width: 24px; height: 24px; margin-right: 0; opacity: 0.75;}
 
-  #remote-control {text-align: center; position: absolute; bottom: -360px; width: 100%; height: 360px; background-color: rgba(34,34,34,0.85); color: #ccc; transition: all 0.3s ease;}
-  #remote-control.open {bottom: 0;}
-  #remote-control-audio-number-chanel {display: flex;}
-  #remote-control-number {display: flex; flex: 1; flex-wrap: wrap; font-size: 24px;}
-  #remote-control-number > * {width: 33.33%; height: 48px; line-height: 48px;}
-  #remote-control-audio, #remote-control-chanel {width: 56px; padding: 4px; display: flex;}
   .key-group {display: flex; flex-direction: column; border: 1px solid rgba(128,128,128,0.85); border-radius: 8px; overflow: hidden;}
   .key-group *[data-keycode] { padding: 16px; }
   .key-group .key-group-center {display: block; text-align: center; flex: 1;}
   .key-group .key-group-center::before {content: ""; position: relative; height: 100%; display: inline-block; vertical-align: middle;}
   .key-group .key-group-center > * {vertical-align: middle; opacity: 0.5; width: 20px; height: 20px;}
-  #remote-control {display: flex;}
+  #remote-control {display: flex; backdrop-filter: blur(6px); text-align: center; position: absolute; bottom: -368px; width: 100%; height: 368px; background-color: rgba(34,34,34,0.85); color: #ccc; transition: all 0.3s ease;}
+  #remote-control.open {bottom: 0;}
+  #remote-control-audio-number-chanel {display: flex;}
+  #remote-control-number {display: flex; flex: 1; flex-wrap: wrap; font-size: 24px;}
+  #remote-control-number > * {width: 33.33%; height: 48px; line-height: 48px;}
+  #remote-control-audio, #remote-control-chanel {width: 56px; padding: 4px; display: flex;}
   #remote-control *[data-keycode] {border-radius: 4px;}
   #remote-control *[data-keycode]:hover {background-color: #000;}
   #remote-control #remote-control-left {display: none;}
@@ -120,9 +119,10 @@
   #uploader input {flex: 1;}
   .container.horizontal #remote-control #remote-control-left {flex: 1; display: inline-block;}
   .container.horizontal #remote-control #remote-control-right {max-width: 300px; border-left: 1px solid rgba(128,128,128,0.25); flex: 1;}
-
   .container.horizontal { flex-direction: column; }
   .container.horizontal #screen { max-width: unset; }
+  .container.horizontal #android-buttons li {font-size: 12px; line-height: 24px;}
+  .container.horizontal #android-buttons .icon {margin-right: 6px; margin-bottom: 0; vertical-align: middle;}
 
   .modal {display: none;}
   .modal-mask {position: fixed; top: 0; right: 0; bottom: 0; left: 0; background-color: rgba(0,0,0,0.5); padding: 16px; z-index: 200;}
@@ -136,6 +136,9 @@
   .modal.open {display: block;}
 
   *[data-keycode] {cursor: pointer; transition: all 0.3s ease;}
+  @media (min-width: 577px) {
+    .log-wrapper {margin-top: 0; position: absolute; right: 16px; left: 16px; width: auto; top: 72px; bottom: 16px;}
+  }
   @media (max-width: 576px) {
     .main {padding: 0; margin: 0;}
     #controller { flex-direction: column; box-shadow: unset; border-radius: 0; margin: 0; }
@@ -143,12 +146,12 @@
     #screen .screen-wrapper {flex: 1;}
     #screen .screen-wrapper #canvas {width: auto !important; max-height: 100%; max-width: 100%; margin: 0 auto;}
     #android-buttons {position: relative; z-index: 100;}
-    #android-buttons li { font-size: 12px; padding: 8px;}
-    #android-buttons li .icon { width: 12px; height: 12px; vertical-align: middle; }
+    #android-buttons li { font-size: 10px; padding: 8px;}
     #control {position: fixed; bottom: -100%; left: 0; right: 0; transition: all 0.3s ease;}
-    #control.open {bottom: 52px;}
+    #control.open {bottom: 64px;}
     #control-open {display: inline-block;}
     #control > * {box-shadow: 0 0 16px rgba(0,0,0,0.5);}
+    .log-wrapper {max-height: 320px;}
     html, body {overflow: hidden;}
   }
   
