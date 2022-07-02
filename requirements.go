@@ -174,6 +174,12 @@ func installPythonForAndroid() error {
 	return nil
 }
 
+func installAudioSource() {
+	// https://github.com/gdzx/audiosource
+	// https://dzx.fr/blog/low-latency-microphone-audio-android/
+	// am start fr.dzx.audiosource/.MainActivity
+}
+
 func installFileBrowser() error {
 	expath, _ = os.Getwd()
 	dlDir := filepath.Join(expath, "dl")

@@ -5,6 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>ATX Remote Control</title>
+  <!-- <script src="recorder.mp3.min.js"></script> -->
 </head>
 <style>
   * { box-sizing: border-box; font-family: Helvetica, Arial, sans-serif; }
@@ -40,6 +41,7 @@
   .icon-install {background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE2LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgd2lkdGg9IjM1LjEzNXB4IiBoZWlnaHQ9IjM1LjEzNXB4IiB2aWV3Qm94PSIwIDAgMzUuMTM1IDM1LjEzNSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMzUuMTM1IDM1LjEzNTsiDQoJIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPHBhdGggZD0iTTMyLjAyMSw3LjU3NUwxOC40NDMsMC4yMjNjLTAuNTQ4LTAuMjk3LTEuMjA0LTAuMjk3LTEuNzUyLDBMMy4xMTQsNy41NzZDMi41MjIsNy44OTcsMi4xNTIsOC41MTksMi4xNTIsOS4xOTJ2MTYuNzUNCgkJYzAsMC42NzUsMC4zNywxLjI5NSwwLjk2MiwxLjYxN2wxMy41NzQsNy4zNTRjMC4yNzMsMC4xNDgsMC41NzQsMC4yMjIsMC44NzYsMC4yMjJjMC4zMDIsMCwwLjYwNC0wLjA3MiwwLjg3NS0wLjIyMmwxMy41NzktNy4zNTQNCgkJYzAuNTk0LTAuMzIxLDAuOTY0LTAuOTQyLDAuOTY0LTEuNjE3VjkuMTkyQzMyLjk4Miw4LjUxOSwzMi42MTIsNy44OTcsMzIuMDIxLDcuNTc1eiBNMTcuNTY0LDE0LjQ1NWwtMi41NzUtMS4zOTVsOS4xNDItNS41NzcNCgkJbDMuMTUzLDEuNzA5TDE3LjU2NCwxNC40NTV6IE0xNy41NjcsMy45MjhsMi44MjMsMS41MjlsLTkuMTQsNS41NzdsLTMuNC0xLjg0M0wxNy41NjcsMy45Mjh6IE01LjgzLDEyLjI3OGwzLjc3MiwyLjA0NHYyLjgzNQ0KCQljMCwxLjAxNiwwLjgyMywxLjgzOCwxLjgzOCwxLjgzOHMxLjgzOS0wLjgyMywxLjgzOS0xLjgzOHYtMC44NDRsMi40NSwxLjMyOHYxMi41NjdMNS44MywyNC44NDhWMTIuMjc4TDUuODMsMTIuMjc4eiIvPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=');}
   .icon-emoji {background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTcuNSA5Ljc1QzguMzI5IDkuNzUgOSA4Ljk2NyA5IDhzLS42NzEtMS43NS0xLjUtMS43NVM2IDcuMDM0IDYgOHMuNjcyIDEuNzUgMS41IDEuNzV6TTEwIC40QzQuNjk4LjQuNCA0LjY5OC40IDEwYTkuNiA5LjYgMCAxIDAgMTkuMi0uMDAxQzE5LjYgNC42OTggMTUuMzAxLjQgMTAgLjR6bTAgMTcuMTk5YTcuNiA3LjYgMCAxIDEgMC0xNS4yIDcuNiA3LjYgMCAwIDEgMCAxNS4yem00LjM0MS02LjI2M2EuNzU2Ljc1NiAwIDAgMC0xLjAwOC4zMmMtLjAzNC4wNjUtLjg2OSAxLjU5My0zLjMzMiAxLjU5My0yLjQ1MSAwLTMuMjkxLTEuNTEzLTMuMzMzLTEuNTkyYS43NS43NSAwIDAgMC0xLjMzOS42NzhjLjA1LjA5OSAxLjI0OCAyLjQxNCA0LjY3MiAyLjQxNCAzLjQyNSAwIDQuNjIxLTIuMzE2IDQuNjctMi40MTVhLjc0NS43NDUgMCAwIDAtLjMzLS45OTh6TTExLjI1IDguNzVoMi41YS43NS43NSAwIDAgMCAwLTEuNWgtMi41YS43NS43NSAwIDAgMCAwIDEuNXoiLz48L3N2Zz4=');}
   .icon-close {background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjRweCIgaGVpZ2h0PSIyNHB4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik02LjIyNTY2IDQuODEwOTZDNS44MzUxNCA0LjQyMDQ0IDUuMjAxOTcgNC40MjA0NCA0LjgxMTQ1IDQuODEwOTZDNC40MjA5MiA1LjIwMTQ4IDQuNDIwOTIgNS44MzQ2NSA0LjgxMTQ1IDYuMjI1MTdMMTAuNTg2MiAxMS45OTk5TDQuODExNTEgMTcuNzc0NkM0LjQyMDk4IDE4LjE2NTEgNC40MjA5OCAxOC43OTgzIDQuODExNTEgMTkuMTg4OEM1LjIwMjAzIDE5LjU3OTMgNS44MzUyIDE5LjU3OTMgNi4yMjU3MiAxOS4xODg4TDEyLjAwMDQgMTMuNDE0MUwxNy43NzUxIDE5LjE4ODhDMTguMTY1NiAxOS41NzkzIDE4Ljc5ODggMTkuNTc5MyAxOS4xODkzIDE5LjE4ODhDMTkuNTc5OCAxOC43OTgzIDE5LjU3OTggMTguMTY1MSAxOS4xODkzIDE3Ljc3NDZMMTMuNDE0NiAxMS45OTk5TDE5LjE4OTMgNi4yMjUxN0MxOS41Nzk5IDUuODM0NjUgMTkuNTc5OSA1LjIwMTQ4IDE5LjE4OTMgNC44MTA5NkMxOC43OTg4IDQuNDIwNDQgMTguMTY1NyA0LjQyMDQ0IDE3Ljc3NTEgNC44MTA5NkwxMi4wMDA0IDEwLjU4NTdMNi4yMjU2NiA0LjgxMDk2WiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg==');}
+  .icon-audio {background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkgMTh2LTEuMDZBOCA4IDAgMCAxIDIgOWgyYTYgNiAwIDEgMCAxMiAwaDJhOCA4IDAgMCAxLTcgNy45NFYxOGgzdjJINnYtMmgzek02IDRhNCA0IDAgMSAxIDggMHY1YTQgNCAwIDEgMS04IDBWNHoiLz48L3N2Zz4=');}
   .label { border: 1px solid rgb(134, 134, 134); color:rgb(134, 134, 134); border-radius: 4px; padding: 2px 6px; }
   .label.info { border: 1px solid rgb(32, 145, 238); color:rgb(32, 145, 238); }
   .label.error { border: 1px solid rgb(240, 29, 29); color: rgb(240, 29, 29); }
@@ -240,6 +242,7 @@
         </div>
         <div class="log-wrapper">
           <div id="log-control">
+            <!-- <i class="icon icon-audio" id="send-audio"></i> -->
             <i class="icon icon-install" id="install-apk"></i>
             <i class="icon icon-clear" id="clear-log"></i>
           </div>
@@ -672,6 +675,29 @@ function openApkModal() {
   modal.open({ title: 'Install APK', content: content, footer: footer });
 }
 
+function recordAudio() {
+  // https://github.com/xiangyuecn/Recorder
+  var rec = Recorder();
+  rec.open(function () {
+    rec.start();
+    setTimeout(function () {
+      rec.stop(function (blob, duration) {
+        console.log(URL.createObjectURL(blob), "time:" + duration + "ms");
+        rec.close();
+        var audio = document.createElement("audio");
+        audio.controls = true;
+        document.body.appendChild(audio);
+        audio.src = URL.createObjectURL(blob);
+        audio.play();
+      }, function (msg) {
+        alert("Error:" + msg);
+      });
+    }, 3000);
+  }, function (msg, isUserNotAllow) {
+    alert((isUserNotAllow ? "UserNotAllow，" : "") + "Error:" + msg);
+  });
+}
+
 function Modal() {
   var modalDOM = document.querySelector('.modal'),
     modalHeaderDOM = modalDOM.querySelector('.modal-header h3'),
@@ -772,6 +798,7 @@ var
   androidButtons = document.querySelectorAll('*[data-keycode]'),
   clearLogButton = document.getElementById('clear-log'),
   installApkButton = document.getElementById('install-apk'),
+  recordAudioButton = document.getElementById('send-audio'),
   controllerButton = document.getElementById('open-controller'),
   controlPanelOpenButton = document.getElementById('control-open'),
   controlDOM = document.getElementById('remote-control'),
@@ -797,6 +824,7 @@ androidButtons.forEach(function(button) {
 });
 clearLogButton.addEventListener('click', logClear);
 installApkButton.addEventListener('click', openApkModal);
+// recordAudioButton.addEventListener('click', recordAudio);
 controllerButton.addEventListener('click', function() {
   if (controlDOM.classList.contains('open')) {
     controlDOM.classList.remove('open');
