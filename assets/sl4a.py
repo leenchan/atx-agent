@@ -1,5 +1,6 @@
 import android
 import sys
+import time
 
 droid = android.Android()
 

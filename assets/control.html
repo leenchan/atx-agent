@@ -270,7 +270,7 @@
 
 var 
   protocolScheme = location.toString().split(':')[0],
-  atxHost = /http/.test(protocolScheme) ? location.host : '192.168.3.214:7912',
+  atxHost = /http/.test(protocolScheme) ? location.host : '192.168.100.210:7912',
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
 
