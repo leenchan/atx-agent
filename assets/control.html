@@ -270,7 +270,7 @@
 
 var 
   protocolScheme = location.toString().split(':')[0],
-  atxHost = /http/.test(protocolScheme) ? location.host : '192.168.100.210:7912',
+  atxHost = /http/.test(protocolScheme) ? location.host : '192.168.3.214:7912',
   apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://',
   apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
 
@@ -733,6 +733,7 @@ var wsMinitouch = createMinitouchWebsocket();
 
 var pointersDown = [];
 var pointersMove = [];
+var scrollAction = {};
 
 canvas.addEventListener('pointerdown', function(e) {
   if (e.button == 2) {return}
@@ -788,6 +789,32 @@ document.addEventListener('keyup', function(e) {
     return;
   }
   sendKeybordCode(e)
+});
+document.addEventListener('wheel', function(e) {
+  if (e.target === canvas) {
+    if (scrollAction.timeout) {
+      clearTimeout(scrollAction.timeout);
+      // console.log(Date.now() - scrollAction.time);
+      scrollAction.time = Date.now();
+    } else {
+      scrollAction.time = Date.now();
+    }
+    if (!scrollAction.position) {
+      scrollAction.position = { offsetX: e.offsetX, offsetY: e.offsetY, deltaX: e.deltaX, deltaY: e.deltaY };
+    } else {
+      scrollAction.position = { offsetX: e.offsetX, offsetY: e.offsetY, deltaX: scrollAction.position.deltaX + e.deltaX, deltaY: scrollAction.position.deltaY + e.deltaY };
+    }
+    scrollAction.timeout = setTimeout(function() {
+      var size = window.screenSize.split('x');
+      var startX = scrollAction.position.offsetX / e.target.clientWidth * size[0],
+        startY = scrollAction.position.offsetY / e.target.clientHeight * size[1],
+        endX = (scrollAction.position.offsetX / e.target.clientWidth + scrollAction.position.deltaX / e.target.clientWidth) * size[0],
+        endY = (scrollAction.position.offsetY / e.target.clientHeight + scrollAction.position.deltaY / e.target.clientHeight) * size[1];
+      // console.log(startX, startY, endX, endY)
+      scrollAction = {};
+      shell({ cmd: 'input swipe ' + Math.floor(startX) + ' ' + Math.floor(startY) + ' ' + Math.floor(endX) + ' ' + Math.floor(endY) + ' ' + 500});
+    }, 100);
+  }
 });
 
 var
