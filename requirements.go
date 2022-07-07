@@ -143,6 +143,7 @@ func installMinitouch() error {
 }
 
 func installPythonForAndroid() error {
+	// https://github.com/yan12125/python3-android/releases
 	if pi, err := androidutils.StatPackage("com.googlecode.android_scripting"); err == nil {
 		fmt.Printf("SL4A\nversion name:(%s)\nversion code:(%d)\n", pi.Version.Name, pi.Version.Code)
 	} else {

@@ -918,7 +918,10 @@ func (server *Server) initHTTPServer() {
 				return
 			}
 		}
-		io.WriteString(w, "0")
+		renderJSON(w, map[string]interface{}{
+			"status": "success",
+		})
+		// io.WriteString(w, "0")
 	}).Methods("POST")
 
 	// deprecated

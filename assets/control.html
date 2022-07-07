@@ -665,10 +665,10 @@ function openApkModal() {
     var options = uploadSelect.value == 'file' ? { file: fileInput.files[0] } : uploadSelect.value == 'url' ? { url: urlInput.value } : {};
     options.onSuccess = function(res) {
       installBtn.removeAttribute('loading');
-      alert(res);
-      if (res == 0) {
-        modal.close();
+      if (res && res.status == 'success') {
+        alert('Successfully to install the APK.')
       }
+      modal.close();
     };
     installAPK(options);
   });
