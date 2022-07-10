@@ -98,27 +98,31 @@ func installMinicap() error {
 	if pre != "" && pre != "0" {
 		sdk = sdk + pre
 	}
+	if sdk == "32" {
+		sdk = "31"
+	}
 
-	binURL := formatString("http://{baseurl}/{path}/{abi}/{bin}", map[string]string{
-		"baseurl": baseurl,
-		"path":    "stf-binaries/node_modules/@devicefarmer/minicap-prebuilt/prebuilt",
-		"abi":     abi,
-		"bin":     "bin/minicap",
-	})
-
+	// binURL := formatString("http://{baseurl}/{path}/{abi}/{bin}", map[string]string{
+	// 	"baseurl": baseurl,
+	// 	"path":    "stf-binaries/node_modules/@devicefarmer/minicap-prebuilt/prebuilt",
+	// 	"abi":     abi,
+	// 	"bin":     "bin/minicap",
+	// })
+	binURL := "https://github.com/AirtestProject/Airtest/raw/master/airtest/core/android/static/stf_libs/" + abi + "/minicap"
 	//binURL := strings.Join([]string{minicapSource, abi, "bin", "minicap"}, "/")
 	_, err := httpDownload(minicapbin, binURL, 0755)
 	if err != nil {
 		return err
 	}
 
-	libURL := formatString("http://{baseurl}/{path}/{abi}/lib/{lib}/{so}", map[string]string{
-		"baseurl": baseurl,
-		"path":    "stf-binaries/node_modules/@devicefarmer/minicap-prebuilt/prebuilt",
-		"abi":     abi,
-		"lib":     "android-" + sdk,
-		"so":      "minicap.so",
-	})
+	// libURL := formatString("http://{baseurl}/{path}/{abi}/lib/{lib}/{so}", map[string]string{
+	// 	"baseurl": baseurl,
+	// 	"path":    "stf-binaries/node_modules/@devicefarmer/minicap-prebuilt/prebuilt",
+	// 	"abi":     abi,
+	// 	"lib":     "android-" + sdk,
+	// 	"so":      "minicap.so",
+	// })
+	libURL := "https://github.com/AirtestProject/Airtest/raw/master/airtest/core/android/static/stf_libs/minicap-shared/aosp/libs/android-" + sdk + "/" + abi + "/minicap.so"
 	//libURL := strings.Join([]string{minicapSource, abi, "lib", "android-" + sdk, "minicap.so"}, "/")
 	_, err = httpDownload(minicapso, libURL, 0644)
 	if err != nil {
@@ -132,12 +136,13 @@ func installMinitouch() error {
 	if fileExists(minitouchbin) {
 		return nil
 	}
-	binURL := formatString("http://{baseurl}/{path}/{abi}/{bin}", map[string]string{
-		"baseurl": baseurl,
-		"path":    "stf-binaries/node_modules/@devicefarmer/minitouch-prebuilt/prebuilt",
-		"abi":     getCachedProperty("ro.product.cpu.abi"),
-		"bin":     "bin/minitouch",
-	})
+	binURL := "https://github.com/AirtestProject/Airtest/raw/master/airtest/core/android/static/stf_libs/" + getCachedProperty("ro.product.cpu.abi") + "/minitouch"
+	// binURL := formatString("http://{baseurl}/{path}/{abi}/{bin}", map[string]string{
+	// 	"baseurl": baseurl,
+	// 	"path":    "stf-binaries/node_modules/@devicefarmer/minitouch-prebuilt/prebuilt",
+	// 	"abi":     getCachedProperty("ro.product.cpu.abi"),
+	// 	"bin":     "bin/minitouch",
+	// })
 	_, err := httpDownload(minitouchbin, binURL, 0755)
 	return err
 }
