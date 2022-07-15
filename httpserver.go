@@ -1062,6 +1062,8 @@ func (server *Server) initHTTPServer() {
 	m.HandleFunc("/sl4a", func(w http.ResponseWriter, r *http.Request) {
 		// https://github.com/kuri65536/sl4a/blob/master/docs/ApiReference.md
 		// python2: sl4a.py / python3: sl4a.py3
+
+		// am start -a android.media.action.STILL_IMAGE_CAMERA --ei android.intent.extras.CAMERA_FACING 1 && sleep 1 && input keyevent KEYCODE_FOCUS && sleep 1 && input keyevent KEYCODE_CAMERA
 		scheme := r.URL.Scheme
 		if scheme == "" {
 			scheme = "http"
@@ -1132,14 +1134,21 @@ func (server *Server) initHTTPServer() {
 	})
 
 	// Aliyundrive Webdav
-	m.HandleFunc("/aliyun", func(w http.ResponseWriter, r *http.Request) {
-		if err := installAliyundriveWebdav(); err == nil {
+	m.HandleFunc("/aliyundrive-webdav", func(w http.ResponseWriter, r *http.Request) {
+		err := installAliyundriveWebdav()
+		if err == nil {
 			log.Println("update aliyundrive-webdav success")
-			io.WriteString(w, "Update aliyundrive-webdav success")
+			runShell("am", "start", "-n", "net.xdow.webdavaliyundriver/.MainActivity")
+			pkg, _ := androidutils.StatPackage("net.xdow.webdavaliyundriver")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status":  "success",
+				"name":    pkg.Name,
+				"version": pkg.Version.Name,
+			})
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-	}).Methods("PUT")
+	}).Methods("GET")
 	m.MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 		match, _ := regexp.MatchString("/aliyun.*", r.URL.Path)
 		return match
