@@ -27,3 +27,5 @@ atx-agent*
 filebrower.db
 latest
 bin
+
+*/node_modules/
