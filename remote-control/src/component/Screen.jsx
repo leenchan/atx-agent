@@ -200,7 +200,7 @@ const Screen = ({}) => {
   }, []);
 
   return (
-    <Box bgcolor={theme.palette.grey[700]} p={{ xs: 0, md: 0 }} flex="1">
+    <Box bgcolor={theme.palette.grey[700]} p={{ xs: 0, md: 0 }} flex="1" display="flex" flexDirection="column" justifyContent="center">
       <Box
         borderRadius={{ xs: 0, md: 0 /* theme.radius.box */ }}
         overflow="hidden"
@@ -220,7 +220,7 @@ const Screen = ({}) => {
             alignItems="center"
             bgcolor={theme.palette.grey[700]}
           >
-            <AndroidIcon sx={{ fontSize: { xs: '8rem', sm: '12rem', md: '16rem' }, color: 'grey' }} />
+            <AndroidIcon sx={{ fontSize: { xs: '8rem', sm: '10rem', md: '12rem' }, color: 'grey' }} />
             {/* <Typography color="grey" fontSize={{ xs: '1rem', sm: '2rem', md: '3rem' }} fontWeight={700}>ATX-AGENT</Typography> */}
             <LinearProgress sx={{ width: '50%', maxWidth: '120px' }} color="primary" />
           </Box>

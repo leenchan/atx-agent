@@ -28,7 +28,13 @@ export const rotate = ({ rotation = 0 }) => {
       {'content-type': 'application/json;charset=UTF-8'},
     },
   );
-}
+};
+
+export const getInfo = () => {
+  return axios.get(
+    apiHttpScheme + atxHost + '/info'
+  );
+}; 
 
 export const minitouchJsonToCmd = (obj) => {
   if (!window.displayPhySize) {

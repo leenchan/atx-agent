@@ -4,7 +4,7 @@ import { useTheme } from '@emotion/react';
 import { useBreakpoint } from '@theme';
 import { Messages } from '@ui/Message';
 import useLoading from '@hook/useLoading';
-import { sendKeybordCode } from '@api/atx';
+import { sendKeybordCode, getInfo } from '@api/atx';
 import Controller from './Controller';
 import Console from './Console';
 import Screen from './Screen';
@@ -13,6 +13,7 @@ import ScreenFooter from './ScreenFooter';
 export const MessageContext = createContext();
 export const LoadingContext = createContext();
 export const LogContext = createContext();
+export const InfoContext = createContext({});
 
 const RemoteControl = () => {
   const theme = useTheme();
@@ -22,6 +23,7 @@ const RemoteControl = () => {
   const loading = useLoading();
   const [msg, setMsg] = useState([]);
   const [log, setLog] = useState([]);
+  const [info, setInfo] = useState({});
 
   const openMsg = (message) => {
     setMsg((prevMsg) => [...prevMsg, message]);
@@ -41,6 +43,14 @@ const RemoteControl = () => {
   const removeLoading = (name) => {
     setLoading(prev => [...prev].filter(l => l !== name));
   };
+  const refreshInfo = async () => {
+    try {
+      const { data } = await getInfo();
+      setInfo(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     document.addEventListener('keydown', function(e) {
@@ -52,39 +62,42 @@ const RemoteControl = () => {
       }
       sendKeybordCode(e)
     });
+    refreshInfo();
   }, []);
 
   return (
     <MessageContext.Provider value={{ msg, openMsg, closeMsg }}>
       <LoadingContext.Provider value={loading}>
         <LogContext.Provider value={{ log, add: addLog, clear: clearLog }}>
-          <Box height={{ xs: 'auto', md: '100vh' }}>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }}>
-              <Box
-                flex="1"
-                display="flex"
-                flexDirection="column"
-                borderRight={{ xs: 'none', md: theme.border.light }}
-                borderBottom={{ xs: theme.border.light, md: 'none' }}
-              >
-                <Screen />
-                <ScreenFooter onToggleController={() => setOpenController(!openController)} openController={openController} />
-              </Box>
-              <Divider orientation={isMobile ? 'horizontal' : 'vertical'} flexItem />
-              <Box width={{ xs: '100%', md: '33.33%', xl: '25%' }} display="flex" flexDirection="column">
-                <Box>
-                  <Controller openController={openController} />
+          <InfoContext.Provider value={{ info, reload: refreshInfo }}>
+            <Box height={{ xs: 'auto', md: '100vh' }}>
+                <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }}>
+                  <Box
+                    flex="1"
+                    display="flex"
+                    flexDirection="column"
+                    borderRight={{ xs: 'none', md: theme.border.light }}
+                    borderBottom={{ xs: theme.border.light, md: 'none' }}
+                  >
+                    <Screen />
+                    <ScreenFooter onToggleController={() => setOpenController(!openController)} openController={openController} />
+                  </Box>
+                  <Divider orientation={isMobile ? 'horizontal' : 'vertical'} flexItem />
+                  <Box width={{ xs: '100%', md: '33.33%', xl: '25%' }} display="flex" flexDirection="column">
+                    <Box>
+                      <Controller openController={openController} />
+                    </Box>
+                    <Box flex="1" display="flex" flexDirection="column">
+                      <Console />
+                    </Box>
+                  </Box>
                 </Box>
-                <Box flex="1" display="flex" flexDirection="column">
-                  <Console />
-                </Box>
               </Box>
-            </Box>
-          </Box>
-          <Messages
-            messages={msg}
-            onClose={closeMsg}
-          />
+              <Messages
+                messages={msg}
+                onClose={closeMsg}
+              />
+          </InfoContext.Provider>
         </LogContext.Provider>
       </LoadingContext.Provider>
     </MessageContext.Provider>

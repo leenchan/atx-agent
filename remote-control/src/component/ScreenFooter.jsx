@@ -2,7 +2,7 @@ import { Box, Button, IconButton } from '@mui/material';
 import PowerSettingsNewOutlinedIcon from '@mui/icons-material/PowerSettingsNewOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 import SettingsRemoteOutlinedIcon from '@mui/icons-material/SettingsRemoteOutlined';
 import ScreenRotationOutlinedIcon from '@mui/icons-material/ScreenRotationOutlined';
 import { useTheme } from '@emotion/react';
@@ -45,7 +45,7 @@ const ScreenFooter = ({
       <FooterButton Icon={PowerSettingsNewOutlinedIcon} onClick={() => inputKey(26)} />
       <FooterButton Icon={GridViewOutlinedIcon} onClick={() => inputKey(187)} />
       <FooterButton Icon={HomeOutlinedIcon} onClick={() => inputKey(3)} />
-      <FooterButton Icon={ArrowBackOutlinedIcon} onClick={() => inputKey(4)} />
+      <FooterButton Icon={UndoOutlinedIcon} onClick={() => inputKey(4)} />
       <FooterButton Icon={ScreenRotationOutlinedIcon} onClick={() => inputKey()} />
       <FooterButton Icon={SettingsRemoteOutlinedIcon} onClick={onToggleController} color={openController ? 'primary' : 'inherit'} />
     </Box>

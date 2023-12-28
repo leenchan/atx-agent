@@ -11,7 +11,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 
@@ -82,7 +82,7 @@ const Controller = ({ openController }) => {
                   </Box>
                 </Box>
                 <Box width="20%">
-                  <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA}>
+                  <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA} overflow="hidden">
                     <ControllerButton Icon={StopIcon} />
                     <ControllerButton Icon={PlayArrowIcon} />
                   </Box>
@@ -100,7 +100,7 @@ const Controller = ({ openController }) => {
                   >
                     <ControllerButton Icon={AddIcon} />
                     <Box display="flex" alignItems="center" justifyContent="center" sx={{ opacity: 0.25, '&:after': { content: '""' } }}>
-                      <VolumeUpIcon />
+                      <VolumeUpOutlinedIcon />
                     </Box>
                     <ControllerButton Icon={RemoveIcon} />
                   </Box>
