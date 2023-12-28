@@ -83,7 +83,7 @@ const Dialog = styled(
               : title
             } */}
             {showCloseButton && (
-              <Box sx={{ position: 'absolute', zIndex: 1, top: 8, right: 8 }}>
+              <Box sx={{ position: 'absolute', zIndex: 1, top: 12, right: 12 }}>
                 {
                   <IconButton
                     aria-label="close"

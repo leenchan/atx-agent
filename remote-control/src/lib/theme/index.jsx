@@ -46,7 +46,7 @@ const commonTheme = {
 
 const palette = {
   primary: lightGreen,
-  secondary: { main: '#ffeb3b' },
+  secondary: { main: '#ccc' },
 }
 
 const commonDarkTheme = createTheme({
@@ -82,19 +82,28 @@ export const darkTheme = createTheme(commonDarkTheme, {
   },
 })
 
-export const useBreakpoint = () => {
-  const currentTheme = useTheme();
-  const keys = [...currentTheme.breakpoints.keys].reverse();
-  const width = keys.reduce((output, key) => {
+export const getBreakpoint = () => {
+  const breakpoint = keys.reduce((output, key) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const matches = useMediaQuery(currentTheme.breakpoints.up(key));
     return !output && matches ? key : output;
   }, null) || 'xs';
-  const isMobile = ['xs', 'sm'].includes(width);
+  return breakpoint;
+};
+
+export const useBreakpoint = (mobileBreakpoints) => {
+  const mobileIncludes = Array.isArray(mobileBreakpoints) ? mobileBreakpoints : ['xs', 'sm'];
+  const currentTheme = useTheme();
+  const keys = [...currentTheme.breakpoints.keys].reverse();
+  const breakpoint = keys.reduce((output, key) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const matches = useMediaQuery(currentTheme.breakpoints.up(key));
+    return !output && matches ? key : output;
+  }, null) || 'xs';
+  const isMobile = mobileIncludes.includes(breakpoint);
 
   return {
-    width,
-    breakpoint: width,
+    breakpoint,
     isMobile,
     padding: isMobile ? 3 : 6,
   };

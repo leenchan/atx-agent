@@ -4,14 +4,14 @@ import { useTheme } from '@emotion/react';
 import { useBreakpoint } from '@theme';
 import { Messages } from '@ui/Message';
 import useLoading from '@hook/useLoading';
-import { sendKeybordCode, getInfo } from '@api/atx';
+import { sendKeybordCode, getPropByJson, getInfo } from '@api/atx';
 import Controller from './Controller';
 import Console from './Console';
 import Screen from './Screen';
 import ScreenFooter from './ScreenFooter';
+import { MessageContext } from '@ui/Message';
+import { LoadingContext } from '@hook/useLoading';
 
-export const MessageContext = createContext();
-export const LoadingContext = createContext();
 export const LogContext = createContext();
 export const InfoContext = createContext({});
 
@@ -31,6 +31,9 @@ const RemoteControl = () => {
   const closeMsg = (message) => {
     setMsg((prevMsg) => prevMsg.filter((m) => m !== message));
   };
+  const clearMsg = () => {
+    setMsg((prevMsg) => []);
+  };
   const addLog = ({ type, content, time, pin }) => {
     setLog(prev => [...prev, { type, content, time: new Date().valueOf(), pin }]);
   };
@@ -44,12 +47,16 @@ const RemoteControl = () => {
     setLoading(prev => [...prev].filter(l => l !== name));
   };
   const refreshInfo = async () => {
+    loading.add('info');
     try {
-      const { data } = await getInfo();
+      const data = await getPropByJson();
+      await getInfo();
+      // const { data } = await getInfo();
       setInfo(data);
     } catch (error) {
       console.error(error);
     }
+    loading.remove('info');
   };
 
   useEffect(() => {
@@ -66,7 +73,7 @@ const RemoteControl = () => {
   }, []);
 
   return (
-    <MessageContext.Provider value={{ msg, openMsg, closeMsg }}>
+    <MessageContext.Provider value={{ msg, add: openMsg, remove: closeMsg, clear: clearMsg }}>
       <LoadingContext.Provider value={loading}>
         <LogContext.Provider value={{ log, add: addLog, clear: clearLog }}>
           <InfoContext.Provider value={{ info, reload: refreshInfo }}>

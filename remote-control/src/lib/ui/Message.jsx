@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import styled from '@emotion/styled';
 import { Alert, AlertTitle, Box, Snackbar } from '@mui/material';
+
+export const MessageContext = createContext();
 
 export const Messages = (
   {

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext } from 'react';
+
+export const LoadingContext = createContext();
 
 export const useLoading = () => {
   const [loading, setLoading] = useState([]);

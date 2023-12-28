@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef } from 'react';
 import {
   Box, Button, TextField, OutlinedInput,
   InputAdornment, IconButton, Divider, Typography,
@@ -12,9 +12,13 @@ import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 import { LogContext, InfoContext } from './RemoteControl';
+import { LoadingContext } from '@hook/useLoading';
 import { inputText, shell, getInfo, sl4aApi } from '@api/atx';
 import InfoModal from './Dialog/InfoModal';
+import InstallApkModal from './Dialog/InstallApkModal';
+import SettingModal from './Dialog/SettingModal';
 
 const BarIcon = ({
   Icon,
@@ -72,12 +76,17 @@ const LogChip = ({ type, sx, ...props }) => {
 };
 
 const Console = () => {
+  const inputRef = useRef();
   const theme = useTheme();
   const log = useContext(LogContext);
+  const infoContext = useContext(InfoContext);
+  const loading = useContext(LoadingContext);
   const [text, setText] = useState();
   const [info, setInfo] = useState();
+  const [openInstallApk, setOpenInstallApk] = useState(false);
+  const [openSetting, setOpenSetting] = useState(false);
   const disabledInputButtons = !(text && `${text}`.trim() !== '');
-  const deviceInfo = useContext(InfoContext);
+  
 
   const onTts = async (e) => {
     try {
@@ -103,14 +112,29 @@ const Console = () => {
     }
   };
 
+  const onClear = () => {
+    setText('');
+    inputRef.current.focus();
+  };
+
   const onGetInfo = async () => {
-    try {
-      const res = await getInfo();
-      const { data: { output } } = await shell({ cmd: 'getprop' });
-      setInfo(JSON.parse('{' + output.replace(/[\[\]]/g, '"').replace(/\n/g, ',').replace(/,$/, '') + '}'));
-    } catch (error) {
-      console.error(error);
-    }
+    console.log(infoContext)
+    setInfo(infoContext.info);
+    // try {
+    //   const res = await getInfo();
+    //   const { data: { output } } = await shell({ cmd: 'getprop' });
+    //   setInfo(JSON.parse('{' + output.replace(/[\[\]]/g, '"').replace(/\n/g, ',').replace(/,$/, '') + '}'));
+    // } catch (error) {
+    //   console.error(error);
+    // }
+  };
+
+  const onInstallApk = () => {
+    setOpenInstallApk(true);
+  };
+
+  const onSetting = () => {
+    setOpenSetting(true);
   };
 
   return (
@@ -123,6 +147,12 @@ const Console = () => {
             placeholder="TTS / Command / Text"
             endAdornment={
               <InputAdornment position="end">
+                <IconButton
+                  sx={{ visibility: (text && text !== '' ? 'unset' : 'hidden') }}
+                  onClick={onClear}
+                >
+                  <BackspaceOutlinedIcon htmlColor={theme.palette.text.secondary} fontSize="small" />
+                </IconButton>
                 <IconButton onClick={onTts} disabled={disabledInputButtons}>
                   <RecordVoiceOverOutlinedIcon />
                 </IconButton>
@@ -145,6 +175,8 @@ const Console = () => {
             }}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            inputRef={inputRef}
           />
         </Box>
         <Box display="flex" flexWrap="nowrap" justifyContent="right" borderTop={theme.border.lighter}>
@@ -154,9 +186,9 @@ const Console = () => {
           <Box width="50%" display="flex" justifyContent="flex-end" color="text.secondary">
             <BarIcon Icon={InfoOutlinedIcon} color="inherit" title="Device Info" onClick={onGetInfo} />
             <Divider orientation="vertical" variant="middle" flexItem />
-            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Install APK" />
+            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Package" onClick={onInstallApk} />
             <Divider orientation="vertical" variant="middle" flexItem />
-            <BarIcon Icon={SettingsOutlinedIcon} color="inherit" title="Setting" />
+            <BarIcon Icon={SettingsOutlinedIcon} color="inherit" title="Setting" onClick={onSetting} />
           </Box>
         </Box>
         <Box
@@ -192,9 +224,19 @@ const Console = () => {
           </Typography>
         </Box>
       </Box>
+      {console.log(loading.has('info'))}
       <InfoModal
         info={info}
         onClose={() => setInfo()}
+        loading={loading.has('info')}
+      />
+      <InstallApkModal
+        open={openInstallApk}
+        onClose={() => setOpenInstallApk(false)}
+      />
+      <SettingModal
+        open={openSetting}
+        onClose={() => setOpenSetting(false)}
       />
     </>
 

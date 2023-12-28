@@ -1,8 +1,11 @@
 import Dialog from '@ui/Dialog';
 import { Box, Typography } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CircularProgress from '@mui/material';
 
 const InfoModal = ({
   info,
+  loading,
   ...props
 }) => {
   const deviceInfo = { ...info };
@@ -36,25 +39,39 @@ const InfoModal = ({
   return (
     <Dialog
       open={!!info}
-      title="Device Info"
+      title={
+        <>
+          <Box mt={-0.35} mr={1} display="flex">
+            <InfoOutlinedIcon fontSize="large" />
+          </Box>
+          Device Info
+        </>
+      }
       {...props}
     >
-      <Box color="text.secondary">
-        {infoList.map(([title, content], index) => (
-          <Box display="flex" flexWrap="warp" py={1} key={index}>
-            <Box width={{ sx: '100%', md: '33.33%' }}>
-              <Typography variant="body2">
-                {title}
-              </Typography>
+      {loading ? (
+        <Box p={2}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box color="text.secondary">
+          {infoList.map(([title, content], index) => (
+            <Box display="flex" flexWrap="warp" py={1} key={index}>
+              <Box width={{ sx: '100%', md: '33.33%' }}>
+                <Typography variant="body2">
+                  {title}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2">
+                  {content ?? '-'}
+                </Typography>
+              </Box>
             </Box>
-            <Box>
-              <Typography variant="body2">
-                {content ?? '-'}
-              </Typography>
-            </Box>
-          </Box>
-        ))}
-      </Box>
+          ))}
+        </Box>
+      )}
+
     </Dialog>
   )
 };

@@ -34,7 +34,16 @@ export const getInfo = () => {
   return axios.get(
     apiHttpScheme + atxHost + '/info'
   );
-}; 
+};
+
+export const getProp = () => {
+  return shell({ cmd: 'getprop' });
+};
+
+export const getPropByJson = async () => {
+  const { data: { output } } = await getProp();
+  return JSON.parse('{' + output.replace(/[\[\]]/g, '"').replace(/\n/g, ',').replace(/,$/, '') + '}');
+};
 
 export const minitouchJsonToCmd = (obj) => {
   if (!window.displayPhySize) {
@@ -196,6 +205,20 @@ export const sendKeybordCode = (e) => {
 	} else {
 	}
 	console.log('keybord_code', e.key, e.keyCode);
+};
+
+export const installApk = ({ file, url }) => {
+  const form = new FormData();
+  if (file) {
+    form.append('file', file);
+  } else if (url) {
+    form.append('url', url);
+  }
+  return axios.post(apiHttpScheme + atxHost + '/install', form);
+};
+
+export const getPackages = (filter) => {
+  return axios.get(apiHttpScheme + atxHost + '/packages');
 };
 
 export const sl4aApi = (params) => {

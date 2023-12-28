@@ -7,7 +7,9 @@ import SentimentNeutralOutlinedIcon from '@mui/icons-material/SentimentNeutralOu
 import { useLoading } from '@hook';
 import { createMinicapWebsocket, createMinitouchWebsocket } from '@api/websocket';
 import { shell, sendTouch, inputKey } from  '@api/atx';
-import { MessageContext, LoadingContext, LogContext } from './RemoteControl';
+import { LogContext } from './RemoteControl';
+import { LoadingContext } from '@hook/useLoading';
+import { MessageContext } from '@ui/Message';
 
 const ScreenCanvas = styled.canvas`
   display: block;
@@ -50,10 +52,11 @@ const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
     // initDisplay();
     return;
   }
-  var blob = new Blob([message.data], {type: 'image/jpeg'});
-  var URL = window.URL || window.webkitURL;
-  var img = new Image();
   const g = canvas.getContext('2d');
+  const URL = window.URL || window.webkitURL;
+  let blob = new Blob([message.data], {type: 'image/jpeg'});
+  let url = URL.createObjectURL(blob);
+  let img = new Image();
   img.onload = function() {
     canvas.width = img.width;
     canvas.height = img.height;
@@ -71,11 +74,10 @@ const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
     img.onload = null;
     img.src = BLANK_IMG;
     img = null;
-    u = null;
+    url = null;
     blob = null;
   };
-  var u = URL.createObjectURL(blob);
-  img.src = u;
+  img.src = url;
 };
 
 const Screen = ({}) => {
@@ -182,7 +184,7 @@ const Screen = ({}) => {
           log.add({ type: 'info', content: 'connected to minitouch.' });
         },
         onMessage: (data) => {
-          console.log(data.message);
+          // console.log(data.message);
         },
       });
     }

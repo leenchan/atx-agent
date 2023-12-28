@@ -7,24 +7,30 @@ import SettingsRemoteOutlinedIcon from '@mui/icons-material/SettingsRemoteOutlin
 import ScreenRotationOutlinedIcon from '@mui/icons-material/ScreenRotationOutlined';
 import { useTheme } from '@emotion/react';
 import { inputKey } from '@api/atx';
+import { useBreakpoint } from '@theme';
 
 const FooterButton = ({
   Icon,
   ...props
-}) => (
-  <IconButton
-    size="large"
-    sx={{
-      borderRadius: 1,
-    }}
-    color="inherit"
-    {...props}
-  >
-    {!!Icon && (
-      <Icon fontSize="medium" />
-    )}
-  </IconButton>
-);
+}) => {
+  const { breakpoint, isMobile } = useBreakpoint(['xs']);
+  const size = breakpoint === 'xs' ? 'small' : 'medium';
+
+  return (
+    <IconButton
+      size={size}
+      sx={{
+        borderRadius: 1,
+      }}
+      color="inherit"
+      {...props}
+    >
+      {!!Icon && (
+        <Icon fontSize={size} />
+      )}
+    </IconButton>
+  )
+};
 
 const ScreenFooter = ({
   openController,
