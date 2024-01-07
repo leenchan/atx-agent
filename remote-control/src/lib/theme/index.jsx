@@ -1,7 +1,30 @@
 import { createTheme, useTheme, lighten, darken } from '@mui/material/styles';
 import { alpha } from "@mui/material";
+import { keyframes } from '@mui/system';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { lime, purple, grey, lightGreen } from '@mui/material/colors';
+
+const size = {
+  4: '0.25rem',
+  8: '0.5rem',
+  10: '0.625rem',
+  12: '0.75rem',
+  14: '0.875rem',
+  16: '1rem',
+  20: '1.25rem',
+  24: '1.5rem',
+  28: '1.75rem',
+  32: '2rem',
+  36: '2.25rem',
+  40: '2.5rem',
+  44: '2.75rem',
+  48: '3rem',
+  64: '4rem',
+  80: '5rem',
+  96: '6rem',
+  112: '7rem',
+  128: '8rem',
+};
 
 const borderRadius = {
   1: '0.125rem', // 2px
@@ -24,7 +47,13 @@ const padding = {
   default: '1rem',
 };
 
-const commonTheme = {
+const blink = keyframes`
+  0% { opacity: 0.33; }
+  50% { opacity: 0.75; }
+  100% { opacity: 0.33; }`;
+
+const theme = createTheme({
+  size,
   radius: {
     ...borderRadius,
     default: borderRadius[3],
@@ -34,20 +63,80 @@ const commonTheme = {
   shape: {
     borderRadius: 8,
   },
-  components: {
-    MuiButton: {
-      defaultProps: {
-        disableElevation: true
-      }
-    }
+  animation: {
+    blink: `${blink} 2s linear infinite`,
   },
   padding,
-};
+  typography: {
+    button: {
+      textTransform: 'none',
+    },
+  },
+});
+
+const commonTheme = createTheme(theme, {
+  typography: {
+    ...theme.typography,
+    fontWeight: 400,
+    // fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji"',
+    h0: {
+      fontSize: size[40],
+      fontWeight: 500,
+    },
+    h1: {
+      fontSize: size[32],
+      fontWeight: 500,
+    },
+    h2: {
+      fontSize: size[24],
+      fontWeight: 500,
+    },
+    h3: {
+      fontSize: size[20],
+      fontWeight: 500,
+    },
+    h4: {
+      fontSize: size[16],
+      fontWeight: 500,
+    },
+    h5: {
+      fontSize: size[14],
+      fontWeight: 500,
+    },
+    h6: {
+      fontSize: size[12],
+      fontWeight: 500,
+    },
+    body1: {
+      fontSize: size[14],
+      fontWeight: 400,
+    },
+    body2: {
+      fontSize: size[12],
+      fontWeight: 400,
+    },
+    subtitle1: {
+      fontSize: size[10],
+      fontWeight: 400,
+    },
+    subtitle2: {
+      fontSize: size[8],
+      fontWeight: 400,
+    },
+    caption: {
+      fontSize: size[10],
+      fontWeight: 400,
+    },
+    button: {
+      textTransform: 'none',
+    },
+  },
+});
 
 const palette = {
   primary: lightGreen,
   secondary: { main: '#ccc' },
-}
+};
 
 const commonDarkTheme = createTheme({
   ...commonTheme,
@@ -57,7 +146,28 @@ const commonDarkTheme = createTheme({
   },
 });
 
-export const darkTheme = createTheme(commonDarkTheme, {
+const createComponentsTheme = (theme) => ({
+  MuiButton: {
+    defaultProps: {
+      disableElevation: true,
+    },
+  },
+  MuiOutlinedInput: {
+    styleOverrides: {
+      root: {
+        paddingRight: 0,
+        background: theme.palette.background.lighter,
+        '&.Mui-focused': {
+          background: theme.palette.background.default,
+        },
+      },
+    },
+  },
+});
+
+export const darkTheme = ((theme) => createTheme(theme, {
+  components: createComponentsTheme(theme),
+}))(createTheme(commonDarkTheme, {
   palette: {
     background: {
       ...commonDarkTheme.palette.background,
@@ -80,7 +190,9 @@ export const darkTheme = createTheme(commonDarkTheme, {
     dark: `1px solid ${grey[900]}`,
     darker: `1px solid ${alpha(grey[900], 0.5)}`,
   },
-})
+}));
+
+// console.log(darkTheme);
 
 export const getBreakpoint = () => {
   const breakpoint = keys.reduce((output, key) => {

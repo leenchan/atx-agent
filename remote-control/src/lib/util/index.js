@@ -5,3 +5,7 @@ export const isEmpty = (v) => {
 export const delay = async (seconds) => {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 };
+
+export const copyToClipboard = (text) => {
+  navigator.clipboard.writeText(text);
+};

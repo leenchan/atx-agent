@@ -104,3 +104,8 @@ func forceInstallAPK(filepath string) error {
 	am := &APKManager{Path: filepath}
 	return am.ForceInstall()
 }
+
+func uninstallPackage(packageName string) error {
+	_, err := runShell("pm", "uninstall", packageName)
+	return err
+}

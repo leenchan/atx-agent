@@ -1,4 +1,9 @@
-import { apiWebsocketScheme, atxHost } from './atx';
+
+import { loadSetting, defaultHost } from '@hook/useSetting';
+import { getAtxWsUrl } from './common';
+
+// const setting = loadSetting();
+// export const atxHost = setting.host ?? defaultHost;
 
 export function createMinicapWebsocket({
   onMessage = () => {},
@@ -8,7 +13,8 @@ export function createMinicapWebsocket({
   updateDuration,
   setCount,
 }) {
-  var ws = new WebSocket(apiWebsocketScheme + atxHost + '/minicap');
+  const atxWsUrl = getAtxWsUrl();
+  var ws = new WebSocket(atxWsUrl + '/minicap');
   var lastTime = 0;
   ws.binaryType = 'blob';
   ws.onclose = function() {
@@ -48,7 +54,8 @@ export function createMinitouchWebsocket({
   onError = () => {},
   onClose = () => {},
 }) {
-  const ws = new WebSocket(apiWebsocketScheme + atxHost + '/minitouch');
+  const atxWsUrl = getAtxWsUrl();
+  var ws = new WebSocket(atxWsUrl + '/minitouch');
   ws.onclose = function() {
     onClose();
     // console.log('onclose', arguments);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Box, Button, Divider, IconButton, Typography } from '@mui/material';
 import { useTheme } from '@emotion/react';
 import { useBreakpoint } from '@theme';
@@ -14,6 +14,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import { inputKey } from '@api/atx';
+import { LogContext } from '@hook/log';
 
 const ControllerButton = ({ Icon, children, sx, ...props }) => {
   const { isMobile } = useBreakpoint();
@@ -43,10 +45,16 @@ const ControllerButton = ({ Icon, children, sx, ...props }) => {
 
 const Controller = ({ openController }) => {
   const theme = useTheme();
+  const log = useContext(LogContext);
   const borderRadiusA = theme.radius[5];
 
   const groupButtonStyle = {
     border: theme.border.dark,
+  };
+
+  const onKeyPress = (code) => {
+    inputKey(code);
+    log.add({ content: `input key ${code}` });
   };
 
   return (
@@ -58,33 +66,33 @@ const Controller = ({ openController }) => {
               <Box display="flex">
                 <Box width="20%">
                   <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA} overflow="hidden">
-                    <ControllerButton Icon={SkipPreviousOutlinedIcon} />
-                    <ControllerButton Icon={SkipNextOutlinedIcon} />
+                    <ControllerButton Icon={SkipPreviousOutlinedIcon} onClick={() => onKeyPress(88)} />
+                    <ControllerButton Icon={SkipNextOutlinedIcon} onClick={() => onKeyPress(87)} />
                   </Box>
                 </Box>
                 <Box width="60%" px={2}>
                   <Box display="flex" flexWrap="wrap" sx={{ ...groupButtonStyle, '& > *': { width: '33.33%' } }} borderRadius="50%" overflow="hidden">
                     <Box>
                     </Box>
-                    <ControllerButton Icon={KeyboardArrowUpIcon} />
+                    <ControllerButton Icon={KeyboardArrowUpIcon} onClick={() => onKeyPress(19)} />
                     <Box>
                     </Box>
-                    <ControllerButton Icon={KeyboardArrowLeftIcon} />
-                    <ControllerButton sx={{ border: theme.border.darker, borderRadius: '50%' }}>
+                    <ControllerButton Icon={KeyboardArrowLeftIcon} onClick={() => onKeyPress(21)} />
+                    <ControllerButton sx={{ border: theme.border.darker, borderRadius: '50%' }} onClick={() => onKeyPress(66)}>
                       <Typography>OK</Typography>
                     </ControllerButton>
-                    <ControllerButton Icon={KeyboardArrowRightIcon} />
+                    <ControllerButton Icon={KeyboardArrowRightIcon} onClick={() => onKeyPress(22)} />
                     <Box>
                     </Box>
-                    <ControllerButton Icon={KeyboardArrowDownIcon} />
+                    <ControllerButton Icon={KeyboardArrowDownIcon} onClick={() => onKeyPress(20)} />
                     <Box>
                     </Box>
                   </Box>
                 </Box>
                 <Box width="20%">
                   <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA} overflow="hidden">
-                    <ControllerButton Icon={StopIcon} />
-                    <ControllerButton Icon={PlayArrowIcon} />
+                    <ControllerButton Icon={StopIcon} onClick={() => onKeyPress(86)} />
+                    <ControllerButton Icon={PlayArrowIcon} onClick={() => onKeyPress(85)} />
                   </Box>
                 </Box>
               </Box>
@@ -98,11 +106,11 @@ const Controller = ({ openController }) => {
                     flex="1"
                     sx={{ ...groupButtonStyle, '& > *': { height: '33.33%' } }}
                   >
-                    <ControllerButton Icon={AddIcon} />
+                    <ControllerButton Icon={AddIcon} onClick={() => onKeyPress(24)} />
                     <Box display="flex" alignItems="center" justifyContent="center" sx={{ opacity: 0.25, '&:after': { content: '""' } }}>
                       <VolumeUpOutlinedIcon />
                     </Box>
-                    <ControllerButton Icon={RemoveIcon} />
+                    <ControllerButton Icon={RemoveIcon} onClick={() => onKeyPress(25)} />
                   </Box>
                 </Box>
                 <Box width="60%">
@@ -112,18 +120,14 @@ const Controller = ({ openController }) => {
                     sx={{ '& > *': { width: '33.33%', textAlign: 'center', p: 1 } }}
                     px={1}
                   >
-                    <ControllerButton data-keycode="8"><Typography>1</Typography></ControllerButton>
-                    <ControllerButton data-keycode="9"><Typography>2</Typography></ControllerButton>
-                    <ControllerButton data-keycode="10"><Typography>3</Typography></ControllerButton>
-                    <ControllerButton data-keycode="11"><Typography>4</Typography></ControllerButton>
-                    <ControllerButton data-keycode="12"><Typography>5</Typography></ControllerButton>
-                    <ControllerButton data-keycode="13"><Typography>6</Typography></ControllerButton>
-                    <ControllerButton data-keycode="14"><Typography>7</Typography></ControllerButton>
-                    <ControllerButton data-keycode="15"><Typography>8</Typography></ControllerButton>
-                    <ControllerButton data-keycode="16"><Typography>9</Typography></ControllerButton>
-                    <ControllerButton data-keycode="17"><Typography>*</Typography></ControllerButton>
-                    <ControllerButton data-keycode="7"><Typography>0</Typography></ControllerButton>
-                    <ControllerButton data-keycode="18"><Typography>#</Typography></ControllerButton>
+                    {[
+                      [1, 8], [2, 9], [3, 10], [4, 11], [5, 12], [6, 13],
+                      [7, 14], [8, 15], [9, 16], ['*', 17], ['0', 7], ['#', 18]
+                    ].map(([key, code]) => (
+                      <ControllerButton data-keycode={code} key={key} onClick={() => onKeyPress(code)}>
+                        <Typography>{key}</Typography>
+                      </ControllerButton>
+                    ))}
                   </Box>
                 </Box>
                 <Box width="20%" display="flex">
@@ -135,11 +139,11 @@ const Controller = ({ openController }) => {
                     flex="1"
                     sx={{ ...groupButtonStyle, '& > *': { height: '33.33%' } }}
                   >
-                    <ControllerButton Icon={KeyboardArrowUpIcon} />
+                    <ControllerButton Icon={KeyboardArrowUpIcon} onClick={() => onKeyPress(166)} />
                     <Box display="flex" alignItems="center" justifyContent="center" sx={{ opacity: 0.25, '&:after': { content: '""' } }}>
                       CH
                     </Box>
-                    <ControllerButton Icon={KeyboardArrowDownIcon} />
+                    <ControllerButton Icon={KeyboardArrowDownIcon} onClick={() => onKeyPress(167)} />
                   </Box>
                 </Box>
               </Box>

@@ -7,9 +7,13 @@ import SentimentNeutralOutlinedIcon from '@mui/icons-material/SentimentNeutralOu
 import { useLoading } from '@hook';
 import { createMinicapWebsocket, createMinitouchWebsocket } from '@api/websocket';
 import { shell, sendTouch, inputKey } from  '@api/atx';
-import { LogContext } from './RemoteControl';
+import { LogContext } from '@hook/log';
 import { LoadingContext } from '@hook/useLoading';
+import { SettingContext } from '@hook/useSetting';
 import { MessageContext } from '@ui/Message';
+import Loading from '@ui/Loading';
+import { OptionContext } from '@hook/useOption';
+import { delay } from '@util';
 
 const ScreenCanvas = styled.canvas`
   display: block;
@@ -23,9 +27,9 @@ const msgConnected = {
 
 const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
-const initDisplay = () => {
-  shell({cmd: 'dumpsys display', onSuccess: function(res) {
-    var data = res;
+const initDisplay = async () => {
+  try {
+    const { data } = await shell({ cmd: 'dumpsys display' });
     if (data.output) {
       // console.log(data.output)
       var orientationData = data.output.match(/orientation=[0-3]/);
@@ -39,7 +43,9 @@ const initDisplay = () => {
         console.log('displayPhySize:' + window.displayPhySize);
       }
     }
-  }});
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
@@ -47,9 +53,9 @@ const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
     return;
   }
   // Direction Changed
-  if (typeof message.data == 'string' && message.data.match(/rotation [0-9]+/)) {
-    // window.orientation = message.data.match(/[0-9]+/)[0];
-    // initDisplay();
+  if (typeof message.data === 'string' && message.data.match(/rotation [0-9]+/)) {
+    window.orientation = message.data.match(/[0-9]+/)[0];
+    initDisplay();
     return;
   }
   const g = canvas.getContext('2d');
@@ -72,7 +78,7 @@ const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
     // }
     g.drawImage(img, 0, 0);
     img.onload = null;
-    img.src = BLANK_IMG;
+    // img.src = BLANK_IMG;
     img = null;
     url = null;
     blob = null;
@@ -85,11 +91,13 @@ const Screen = ({}) => {
   const canvasRef = useRef();
   const minicap = useRef();
   const minitouch = useRef();
-  const { openMsg, closeMsg } = useContext(MessageContext);
+  const interval = useRef();
+  const msg = useContext(MessageContext);
   const loading = useContext(LoadingContext);
   // const loading = useLoading();
   const log = useContext(LogContext);
-  const [count, setCount] = useState(0);
+  const { setting } = useContext(SettingContext);
+  const { option = {} } = useContext(OptionContext);
 
   let pointersDown = [];
   let pointersMove = [];
@@ -154,52 +162,109 @@ const Screen = ({}) => {
     return false;
   };
 
-  useEffect(() => {
-    if (canvasRef.current && !minicap.current) {
-      loading.add('minicap');
-      minicap.current = createMinicapWebsocket({
-        onOpen: () => {
-          log.add({ type: 'info', content: 'connected to minicap.' });
-        },
-        onMessage: (data) => {
-          if (typeof data.data !== 'string') {
-            setCount(prev => prev + 1);
-          }
-          onReceiveData({
-            canvas: canvasRef.current,
-          })(data);
-        },
-        onError: () => {
-          minicap.current = undefined;
-        },
-        updateDuration: 100,
-      });
+  const onConnectMinicap = () => {
+    // console.log(minicap.current?.readyState);
+    if (!canvasRef.current || [0, 1].includes(minicap.current?.readyState)) {
+      return;
     }
-  }, [canvasRef.current, minicap.current]);
+    if (minicap.current?.readyState === 3) {
+      minicap.current.close();
+    }
+    minicap.current = createMinicapWebsocket({
+      onOpen: () => {
+        log.add({ type: 'info', content: 'connected to minicap.' });
+      },
+      onMessage: (data) => {
+        if (typeof data.data !== 'string') {
+        }
+        onReceiveData({
+          canvas: canvasRef.current,
+        })(data);
+      },
+      onError: () => {
+        log.add({ type: 'error', content: 'Failed to connect to minicap.' });
+        minicap.current.close();
+        // minicap.current = undefined;
+      },
+      updateDuration: 0,
+    });
+  };
+
+  const onConnectMinitouch = () => {
+    // console.log(minitouch.current?.readyState);
+    if ([0, 1].includes(minitouch.current?.readyState)) {
+      return;
+    }
+    if (minitouch.current?.readyState === 3) {
+      minitouch.current.close();
+    }
+    minitouch.current = createMinitouchWebsocket({
+      onOpen: () => {
+        log.add({ type: 'info', content: 'connected to minitouch.' });
+      },
+      onMessage: (data) => {
+        // console.log(data.message);
+      },
+      onError: () => {
+        log.add({ type: 'error', content: 'Failed to connect to minitouch.' });
+        minitouch.current.close();
+        // minitouch.current = undefined;
+      },
+    });
+  };
+
+  const init = () => {
+    if (option.disableddMinicap) {
+      return;
+    }
+    if (interval.current) {
+      clearInterval(interval.current);
+    }
+    // console.log(setting.host);
+    onConnectMinicap();
+    onConnectMinitouch();
+    interval.current = setInterval(() => {
+      if (minicap.current?.readyState !== 1) {
+        // console.log('reconnecting to minicap...');
+        onConnectMinicap();
+      }
+      if (minitouch.current?.readyState !== 1) {
+        // console.log('reconnecting to minitouch...');
+        onConnectMinitouch();
+      }
+    }, 5000);
+  };
 
   useEffect(() => {
-    if (!minitouch.current) {
-      minitouch.current = createMinitouchWebsocket({
-        onOpen: () => {
-          log.add({ type: 'info', content: 'connected to minitouch.' });
-        },
-        onMessage: (data) => {
-          // console.log(data.message);
-        },
-      });
+    // console.log(setting.host);
+    // console.log('B');
+    if (setting.host || option.disableddMinicap) {
+      if (minicap.current) {
+        minicap.current.close();
+      }
+      if (minitouch.current) {
+        minitouch.current.close();
+      }
     }
-  }, [minitouch.current]);
+    if (option.disableddMinicap) {
+      msg.add({ type: 'warning', content: 'Disconnected from minicap.' });
+      clearInterval(interval.current);
+    } else {
+      if (setting.host) {
+        init();
+      }
+    }
+    return () => {
+      // console.log('A');
+      // console.log(minicap.current, minitouch.current);
+    };
+  }, [setting.host, option]);
 
   useEffect(() => {
-    if (count === 1) {
-      loading.remove('minicap');
-      log.add({ type: 'success', content: 'retriving image from minicap.' });
-      // openMsg(msgConnected);
-    }
-  }, [count]);
-
-  useEffect(() => {
+    // init();
   }, []);
+
+  // console.log(minitouch.current)
 
   return (
     <Box bgcolor={theme.palette.grey[700]} p={{ xs: 0, md: 0 }} flex="1" display="flex" flexDirection="column" justifyContent="center">
@@ -222,9 +287,8 @@ const Screen = ({}) => {
             alignItems="center"
             bgcolor={theme.palette.grey[700]}
           >
-            <AndroidIcon sx={{ fontSize: { xs: '8rem', sm: '10rem', md: '12rem' }, color: 'grey' }} />
-            {/* <Typography color="grey" fontSize={{ xs: '1rem', sm: '2rem', md: '3rem' }} fontWeight={700}>ATX-AGENT</Typography> */}
-            <LinearProgress sx={{ width: '50%', maxWidth: '120px' }} color="primary" />
+            <AndroidIcon sx={{ fontSize: { xs: '4rem', sm: '8rem', md: '12rem' }, color: 'grey' }} />
+            <Loading />
           </Box>
         )}
         <Box

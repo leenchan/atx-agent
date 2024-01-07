@@ -42,6 +42,12 @@ import (
 
 var (
 	expath, _   = GetExDir()
+	rootPath    = expath + "/atx_root"
+	binPath     = rootPath + "/bin"
+	libPath     = rootPath + "/lib"
+	dataPath    = rootPath + "/data"
+	tmpPath     = rootPath + "/tmp"
+	logPath     = rootPath + "/log"
 	service     = cmdctrl.New()
 	downManager = newDownloadManager()
 	upgrader    = websocket.Upgrader{
@@ -57,9 +63,15 @@ var (
 	repo           = "atx-agent"
 	listenAddr     string
 	minicapQuality string
-	daemonLogPath  = filepath.Join(expath, "atx-agent.daemon.log")
+	daemonLogPath  = filepath.Join(logPath, "atx-agent.daemon.log")
 	httpServerAddr string
 
+	minicapBin              = filepath.Join(binPath, "minicap")
+	minicapSo               = filepath.Join(libPath, "minicap.so")
+	minitouchBin            = filepath.Join(binPath, "minitouch")
+	busyboxBin              = filepath.Join(binPath, "busybox")
+	alistBin                = filepath.Join(binPath, "alist")
+	alistDataPath           = rootPath + "/alist"
 	rotationPublisher       = broadcast.NewBroadcaster(1)
 	minicapSocketPath       = "@minicap"
 	minitouchSocketPath     = "@minitouch"
@@ -213,7 +225,7 @@ func updateMinicapRotation(rotation int) {
 	}
 	devInfo := getDeviceInfo()
 	width, height := devInfo.Display.Width, devInfo.Display.Height
-	service.UpdateArgs("minicap", fmt.Sprintf("%v/%v", expath, "minicap"), "-S", "-P",
+	service.UpdateArgs("minicap", fmt.Sprintf("%v/%v", binPath, "minicap"), "-S", "-P",
 		fmt.Sprintf("%dx%d@%dx%d/%d", width, height, displayMaxWidthHeight, displayMaxWidthHeight, rotation), "-Q", minicapQuality)
 	if running {
 		service.Start("minicap")
@@ -428,7 +440,7 @@ func runDaemon() (cntxt *daemon.Context) {
 	cntxt = &daemon.Context{ // remove pid to prevent resource busy
 		PidFilePerm: 0644,
 		LogFilePerm: 0640,
-		LogFileName: filepath.Join(expath, "atx-agent.log"),
+		LogFileName: filepath.Join(logPath, "atx-agent.log"),
 		WorkDir:     "./",
 		Umask:       022,
 	}
@@ -509,7 +521,7 @@ func lazyInit() {
 	// if !isMinicapSupported() {
 	// 	minicapSocketPath = "@minicapagent"
 	// }
-	// if !fileExists(path.Join(expath, "minitouch")) {
+	// if !fileExists(path.Join(minitouchBin)) {
 	// 	minitouchSocketPath = "@minitouchagent"
 	// } else if sdk, _ := strconv.Atoi(getCachedProperty("ro.build.version.sdk")); sdk > 28 { // Android Q..
 	// 	minitouchSocketPath = "@minitouch"
@@ -569,6 +581,13 @@ func main() {
 	kingpin.Version(version)
 	kingpin.CommandLine.HelpFlag.Short('h')
 	kingpin.CommandLine.VersionFlag.Short('v')
+
+	// Create Dir
+	os.MkdirAll(binPath, 0777)
+	os.MkdirAll(libPath, 0777)
+	os.MkdirAll(dataPath, 0777)
+	os.MkdirAll(tmpPath, 0777)
+	os.MkdirAll(logPath, 0777)
 
 	// CMD: curl
 	cmdCurl := kingpin.Command("curl", "curl command")
@@ -646,8 +665,8 @@ func main() {
 		devInfo := getDeviceInfo()
 		width, height := devInfo.Display.Width, devInfo.Display.Height
 		service.Add("minicap", cmdctrl.CommandInfo{
-			Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", expath)},
-			Args: []string{fmt.Sprintf("%v/%v", expath, "minicap"), "-S", "-P",
+			Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath)},
+			Args: []string{minicapBin, "-S", "-P",
 				fmt.Sprintf("%dx%d@%dx%d/0", width, height, displayMaxWidthHeight, displayMaxWidthHeight), "-Q", minicapQuality},
 		})
 		service.Start("minicap")
@@ -714,20 +733,25 @@ func main() {
 	// minicap + minitouch
 	width, height := devInfo.Display.Width, devInfo.Display.Height
 	service.Add("minicap", cmdctrl.CommandInfo{
-		Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", expath)},
-		Args: []string{fmt.Sprintf("%v/%v", expath, "minicap"), "-S", "-P",
+		Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath)},
+		Args: []string{minicapBin, "-S", "-P",
 			fmt.Sprintf("%dx%d@%dx%d/0", width, height, displayMaxWidthHeight, displayMaxWidthHeight), "-Q", minicapQuality},
+	})
+
+	// alist
+	service.Add("alist", cmdctrl.CommandInfo{
+		Args: []string{alistBin, "--refresh-token", aliyundriveRefreshToken, "--port", aliyundrivePort, "--auto-index"},
 	})
 
 	// File Browser
 	service.Add("filebrowser", cmdctrl.CommandInfo{
-		Args: []string{fmt.Sprintf("%v/%v", expath, "filebrowser"), "-b", "/fb", "-a", "127.0.0.1", "-p", filebrowserPort, "-r", filebrowserRootDir},
+		Args: []string{fmt.Sprintf("%v/%v", binPath, "filebrowser"), "-b", "/fb", "-a", "127.0.0.1", "-p", filebrowserPort, "-r", filebrowserRootDir},
 	})
 
 	// Aliyundrive Webdav
-	service.Add("aliyundrive", cmdctrl.CommandInfo{
-		Args: []string{fmt.Sprintf("%v/%v", expath, "aliyundrive-webdav"), "--refresh-token", aliyundriveRefreshToken, "--port", aliyundrivePort, "--auto-index"},
-	})
+	// service.Add("aliyundrive", cmdctrl.CommandInfo{
+	// 	Args: []string{fmt.Sprintf("%v/%v", binPath, "aliyundrive-webdav"), "--refresh-token", aliyundriveRefreshToken, "--port", aliyundrivePort, "--auto-index"},
+	// })
 
 	service.Add("scrcpy", cmdctrl.CommandInfo{
 		OnStart: func() error {
@@ -781,7 +805,7 @@ func main() {
 				return nil, err
 			}
 			minitouchSocketPath = "@minitouch"
-			return []string{fmt.Sprintf("%v/%v", expath, "minitouch")}, nil
+			return []string{minitouchBin}, nil
 		},
 		Shell: true,
 	})
@@ -931,7 +955,7 @@ func main() {
 	}()
 
 	// service.Start("minitouch")
-	service.Start("filebrowser")
+	// service.Start("filebrowser")
 
 	// run server forever
 	if err := server.Serve(listener); err != nil {

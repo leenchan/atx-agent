@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -195,6 +194,9 @@ type ProcInfo struct {
 	NumThreads int      `json:"threadCount"`
 	Cmdline    []string `json:"cmdline"`
 	Name       string   `json:"name"`
+	Vsize      uint     `json:"vsize"`
+	Rss        int      `json:"rss"`
+	User       string   `json:"user"`
 }
 
 // Kill by Pid
@@ -230,6 +232,8 @@ func listAllProcs() (ps []ProcInfo, err error) {
 			Cmdline:    cmdline,
 			Name:       name,
 			NumThreads: stat.NumThreads,
+			Vsize:      stat.VSize,
+			Rss:        stat.ResidentMemory(),
 		})
 	}
 	return
@@ -356,6 +360,7 @@ func httpDownload(path string, urlStr string, perms os.FileMode) (written int64,
 		Uri:             urlStr,
 		RedirectHeaders: true,
 		MaxRedirects:    10,
+		Insecure:        true,
 	}.Do()
 	if err != nil {
 		return
@@ -433,16 +438,17 @@ func copyToFile(rd io.Reader, dst string) error {
 
 // parse output: dumpsys meminfo --local ${pkgname}
 // If everything is going, returns json, unit KB
-// {
-//     "code": 58548,
-//     "graphics": 73068,
-//     "java heap": 160332,
-//     "native heap": 67708,
-//     "private Other": 34976,
-//     "stack": 4728,
-//     "system": 8288,
-//     "total": 407648
-// }
+//
+//	{
+//	    "code": 58548,
+//	    "graphics": 73068,
+//	    "java heap": 160332,
+//	    "native heap": 67708,
+//	    "private Other": 34976,
+//	    "stack": 4728,
+//	    "system": 8288,
+//	    "total": 407648
+//	}
 func parseMemoryInfo(nameOrPid string) (info map[string]int, err error) {
 	output, err := Command{
 		Args:    []string{"dumpsys", "meminfo", "--local", nameOrPid},
@@ -531,7 +537,7 @@ func (c *CPUStat) Update() error {
 	}
 
 	// retrive /proc/stst
-	statData, err := ioutil.ReadFile("/proc/stat")
+	statData, err := os.ReadFile("/proc/stat")
 	if err != nil {
 		return errors.Wrap(err, "read /proc/stat")
 	}
@@ -616,7 +622,7 @@ func readCPUInfo(pid int) (info CPUInfo, err error) {
 }
 
 func dumpHierarchy() (xmlContent string, err error) {
-	var targetPath = filepath.Join(expath, "window_dump.xml")
+	var targetPath = filepath.Join(tmpPath, "window_dump.xml")
 	c := &Command{
 		Args:  []string{"uiautomator", "dump", targetPath},
 		Shell: true,
@@ -624,7 +630,7 @@ func dumpHierarchy() (xmlContent string, err error) {
 	if err = c.Run(); err != nil {
 		return
 	}
-	data, err := ioutil.ReadFile(targetPath)
+	data, err := os.ReadFile(targetPath)
 	xmlContent = string(data)
 	return
 }
@@ -800,16 +806,29 @@ func Copyfile(src, dst string, perms os.FileMode) (int64, error) {
 
 func getGithubLatestReleaseUrl(repo string, fileRegex string) (string, error) {
 	// fmt.Println("https://github.com/" + repo + "/releases/latest")
+	// Step 1
 	res, err := goreq.Request{
 		Uri:             "https://github.com/" + repo + "/releases/latest",
 		MaxRedirects:    10,
 		RedirectHeaders: true,
 	}.Do()
 	defer res.Body.Close()
-	html, err := ioutil.ReadAll(res.Body)
+	html, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
+	assetRegex, _ := regexp.Compile("src=\"[^\"]+/expanded_assets/[^\"]+\"")
+	assetUrlSrc := assetRegex.FindString(string(html))
+	assetUrl := strings.Split(assetUrlSrc, "\"")[1]
+	fmt.Print("asset url: " + assetUrl)
+	// Step 2
+	res, err = goreq.Request{
+		Uri:             assetUrl,
+		MaxRedirects:    10,
+		RedirectHeaders: true,
+	}.Do()
+	defer res.Body.Close()
+	html, err = io.ReadAll(res.Body)
 	re, _ := regexp.Compile("href=\"" + fileRegex + "\"")
 	url := re.FindString(string(html))
 	if url == "" {

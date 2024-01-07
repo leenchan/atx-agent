@@ -2,12 +2,18 @@ import { Box, Button, IconButton } from '@mui/material';
 import PowerSettingsNewOutlinedIcon from '@mui/icons-material/PowerSettingsNewOutlined';
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 import SettingsRemoteOutlinedIcon from '@mui/icons-material/SettingsRemoteOutlined';
-import ScreenRotationOutlinedIcon from '@mui/icons-material/ScreenRotationOutlined';
+import VolumeDownIcon from '@mui/icons-material/VolumeDown';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined';
+import DesktopAccessDisabledOutlinedIcon from '@mui/icons-material/DesktopAccessDisabledOutlined';
 import { useTheme } from '@emotion/react';
-import { inputKey } from '@api/atx';
+import { inputKey, rotate } from '@api/atx';
 import { useBreakpoint } from '@theme';
+import { LogContext } from '@hook/log';
+import { useContext } from 'react';
+import { OptionContext } from '@hook/useOption';
 
 const FooterButton = ({
   Icon,
@@ -38,6 +44,14 @@ const ScreenFooter = ({
 }) => {
   const theme = useTheme();
 
+  const log = useContext(LogContext);
+  const { option, set: setOption } = useContext(OptionContext);
+
+  const onKeyPress = (code) => {
+    inputKey(code);
+    log.add({ content: `input key ${code}` });
+  };
+
   return (
     <Box
       display="flex"
@@ -48,11 +62,19 @@ const ScreenFooter = ({
       gap={0.5}
       color="text.secondary"
     >
-      <FooterButton Icon={PowerSettingsNewOutlinedIcon} onClick={() => inputKey(26)} />
-      <FooterButton Icon={GridViewOutlinedIcon} onClick={() => inputKey(187)} />
-      <FooterButton Icon={HomeOutlinedIcon} onClick={() => inputKey(3)} />
-      <FooterButton Icon={UndoOutlinedIcon} onClick={() => inputKey(4)} />
-      <FooterButton Icon={ScreenRotationOutlinedIcon} onClick={() => inputKey()} />
+      <FooterButton Icon={PowerSettingsNewOutlinedIcon} onClick={() => onKeyPress(26)} />
+      <FooterButton Icon={GridViewOutlinedIcon} onClick={() => onKeyPress(187)} />
+      <FooterButton Icon={HomeOutlinedIcon} onClick={() => onKeyPress(3)} />
+      <FooterButton Icon={KeyboardBackspaceIcon} onClick={() => onKeyPress(4)} />
+      <Box border={theme.border.light} borderRadius={theme.radius.default}>
+        <FooterButton Icon={VolumeDownIcon} onClick={() => onKeyPress(24)} />
+        <FooterButton Icon={VolumeUpIcon} onClick={() => onKeyPress(25)} />
+      </Box>
+      <FooterButton
+        Icon={option?.disableddMinicap ? DesktopAccessDisabledOutlinedIcon : DesktopWindowsOutlinedIcon}
+        onClick={() => setOption({ disableddMinicap: !option?.disableddMinicap })}
+        // color={openController ? 'primary' : 'inherit'}
+      />
       <FooterButton Icon={SettingsRemoteOutlinedIcon} onClick={onToggleController} color={openController ? 'primary' : 'inherit'} />
     </Box>
   );

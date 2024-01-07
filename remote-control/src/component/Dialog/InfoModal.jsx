@@ -1,77 +1,190 @@
+import { useContext, useState } from 'react';
+import { useTheme } from '@emotion/react';
 import Dialog from '@ui/Dialog';
-import { Box, Typography } from '@mui/material';
+import { Box, LinearProgress, Typography, Tabs, Tab } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import CircularProgress from '@mui/material';
+import Loading from '@ui/Loading';
+import { useEffect } from 'react';
+import { getMemUsage, getDiskUsage, getInfo, getProcesses, getServices } from '@api/atx';
+import ProgressBar from '@ui/ProgressBar';
+import { LoadingContext } from '@hook/useLoading';
+import ProcessList from './ProcessList';
+import ServiceList from './ServiceList';
 
 const InfoModal = ({
-  info,
-  loading,
+  open,
   ...props
 }) => {
-  const deviceInfo = { ...info };
-  const productInfo = Object
-    .entries(info ?? {})
-    .reduce((acc, [key, value]) =>
-      /ro\.product/.test(key) ? {...acc, [key]: value} : acc
-    , {});
+  const theme = useTheme();
+  // const deviceInfo = { ...info };
+  const [details, setDetails] = useState({});
+  const deviceInfo = details?.info ?? {};
+  const loading = useContext(LoadingContext);
+  const [tab, setTab] = useState('info');
+  const [processes, setProcesses] = useState([]);
+  const [services, setServices] = useState([]);
+  // console.log(Object.entries(info ?? {}).filter(([k, v]) => /memory/i.test(k)));
+  // const infoList = [
+  //   ['Product', deviceInfo['ro.product.model']],
+  //   ['Brand', deviceInfo['ro.product.brand']],
+  //   ['CPU', deviceInfo['ro.product.chiptype'] + ' (' + deviceInfo['ro.product.cpu.abi'] + ')'],
+  //   ['GPU', deviceInfo['ro.product.gpu.info']],
+  //   ['Memory', deviceInfo['ro.memory.size']],
+  //   ['Storage Size', deviceInfo['ro.product.flash.info']],
+  //   ['Android SDK API', deviceInfo['ro.build.version.sdk']],
+  // ];
 
-  console.log(Object.entries(info ?? {}).filter(([k, v]) => /core/i.test(k)));
-  
+  // console.log(deviceInfo);
   const infoList = [
-    ['Product', deviceInfo['ro.product.model']],
-    ['Brand', deviceInfo['ro.product.brand']],
-    ['CPU', deviceInfo['ro.product.chiptype'] + ' (' + deviceInfo['ro.product.cpu.abi'] + ')'],
-    ['GPU', deviceInfo['ro.product.gpu.info']],
-    ['Memory', deviceInfo['ro.memory.size']],
-    ['Storage Size', deviceInfo['ro.product.flash.info']],
-    ['Android SDK API', deviceInfo['ro.build.version.sdk']],
+    ['Product', deviceInfo.product && `${deviceInfo.product.model}`],
+    ['Brand', deviceInfo.brand],
+    ['CPU', deviceInfo.cpu && `${deviceInfo.cpu.hardware} (${deviceInfo.cpu.cores} Cores)`],
+    ['Arch', deviceInfo.arch],
+    ['Memory', deviceInfo.memory?.around],
+    ['/data', null],
+    ['Android Version', deviceInfo.version],
+    ['Android SDK API', deviceInfo.sdk],
   ];
 
-  // console.log(info);
-  // const infoList = [
-  //   ['Product', deviceInfo.product && `${deviceInfo.product.model}`],
-  //   ['Brand', deviceInfo.brand],
-  //   ['CPU', deviceInfo.cpu && `${deviceInfo.cpu.hardware} (${deviceInfo.cpu.cores} Cores)`],
-  //   ['Memory', deviceInfo.memory?.around],
-  //   ['Android SDK API', deviceInfo.sdk],
-  // ];
+  const fetchInfo = async () => {
+    loading.add('info');
+    try {
+      const { data: info } = await getInfo();
+      const memory = await getMemUsage();
+      Object.entries(memory).forEach(([name, value]) => memory[name] = (value.replace(/\sKB/i, '') / 1024).toFixed(0));
+      memory.MemUsed = memory.MemTotal - memory.MemFree;
+      memory.MemUsedPercent = memory.MemUsed / memory.MemTotal * 100;
+      memory.MemUsedColor = memory.MemUsedPercent > 75 ? 'warning' : memory.MemUsedPercent > 90 ? 'error' : 'success';
+      // console.log(memory)
+      const disk = await getDiskUsage();
+      // console.log(disk)
+      setDetails({ memory, disk, info });
+    } catch (error) {
+      console.error(error);
+    }
+    loading.remove('info');
+  };
+  const fetchProcess = async () => {
+    loading.add('process');
+    try {
+      const nextProcesses = await getProcesses();
+      console.log(nextProcesses)
+      setProcesses(nextProcesses);
+    } catch (error) {
+      
+    }
+    loading.remove('process');
+  };
+  const fetchService = async () => {
+    loading.add('service');
+    try {
+      const nextServices = await getServices();
+      setServices(nextServices);
+      // setProcesses(nextProcesses);
+    } catch (error) {
+      
+    }
+    loading.remove('service');
+  };
+
+  useEffect(() => {
+    switch (tab) {
+      case 'info':
+        fetchInfo();
+        break;
+      case 'process':
+        fetchProcess();
+        break;
+      case 'service':
+        fetchService();
+        break;
+      default:
+        break;
+    }
+  }, [tab])
+
+  useEffect(() => {
+    if (open) {
+      setTab('info');
+    } else {
+      setTab();
+      setDetails({});
+    }
+  }, [open]);
 
   return (
     <Dialog
-      open={!!info}
+      open={!!open}
       title={
         <>
-          <Box mt={-0.35} mr={1} display="flex">
+          <Box mr={1} display="flex">
             <InfoOutlinedIcon fontSize="large" />
           </Box>
           Device Info
+          <Box width="100%">
+            <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ borderBottom: theme.border.light }}>
+              <Tab label="Device" value="info" />
+              <Tab label="Process" value="process" />
+              {/* <Tab label="Service" value="service" /> */}
+            </Tabs>
+          </Box>
         </>
       }
       {...props}
     >
-      {loading ? (
-        <Box p={2}>
-          <CircularProgress />
+      {loading.has('info', 'process', 'service') ? (
+        <Box p={4}>
+          <Loading />
         </Box>
       ) : (
-        <Box color="text.secondary">
-          {infoList.map(([title, content], index) => (
-            <Box display="flex" flexWrap="warp" py={1} key={index}>
-              <Box width={{ sx: '100%', md: '33.33%' }}>
-                <Typography variant="body2">
-                  {title}
-                </Typography>
+        <Box>
+          {tab === 'info' && (
+            <Box color="text.secondary">
+                {infoList.map(([title, content], index) => (
+                  <Box display="flex" flexWrap="wrap" py={1} key={index}>
+                    <Box width={{ xs: '100%', md: '33.33%' }} mb={{ xs: 1, md: 0 }}>
+                      <Typography variant="body1" color="secondary">
+                        {title}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      {title === 'Memory' && (
+                        <ProgressBar
+                          type={details.memory?.MemUsedColor}
+                          value={details.memory?.MemUsedPercent}
+                          text={`${details.memory?.MemUsed} MB / ${details.memory?.MemTotal} MB`}
+                        />
+                      )}
+                      {title === '/data' && (
+                        <ProgressBar
+                          type="info"
+                          value={details.disk?.['/data']?.percent}
+                          text={`${details.disk?.['/data']?.used ?? '-'} / ${details.disk?.['/data']?.total ?? '-'}`}
+                        />
+                      )}
+                      {['Memory', '/data'].includes(title) ? '' : (
+                        <Typography variant="body1">
+                          {content ?? '-'}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                ))}
               </Box>
-              <Box>
-                <Typography variant="body2">
-                  {content ?? '-'}
-                </Typography>
-              </Box>
-            </Box>
-          ))}
+          )}
+          {tab === 'process' && (
+            <ProcessList
+              data={processes}
+              loading={loading.has('process')}
+            />
+          )}
+          {/* {tab === 'service' && (
+            <ServiceList
+              data={services}
+            />
+          )} */}
         </Box>
       )}
-
     </Dialog>
   )
 };

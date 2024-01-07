@@ -55,8 +55,20 @@ export const Messages = (
       // {...props}
     >
       <Box>
-        {messages.map((msg, index) => {
-          const { type, content, title } = msg;
+        {(messages ?? []).map((msg = {}, index) => {
+          let { type, content, title } = msg;
+          if (typeof content === 'object' && !content.props) {
+            if (content.response?.data) {
+              content = content.response.data;
+            } else if (content.message) {
+              content = content.message;
+            } else if (content.code) {
+              content = content.code;
+            } else {
+              content = String(content);
+            }
+          }
+
           return (
             <Alert
               severity={type}

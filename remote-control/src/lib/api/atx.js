@@ -1,18 +1,11 @@
 import axios from 'axios';
 import { delay } from '@util';
+import { loadSetting, defaultHost } from '@hook/useSetting';
+import { getAtxUrl } from './common';
 
-// const atxHost = /http/.test(protocolScheme) ? location.host : '218.71.40.68:7912';
-export const atxHost = '218.71.40.68:7912';
-
-export const apiHttpScheme = protocolScheme == 'https' ? 'https://' : 'http://';
-
-export const protocolScheme = location.toString().split(':')[0];
-
-export const apiWebsocketScheme = protocolScheme == 'https' ? 'wss://' : 'ws://';
-
-export const shell = ({ cmd }) => {
+export const shell = ({ cmd }, stream = false) => {
   return axios.post(
-    apiHttpScheme + atxHost + '/shell',
+    getAtxUrl() + '/shell',
     { command: cmd },
     { headers:
       {'content-type': 'application/x-www-form-urlencoded'},
@@ -20,19 +13,26 @@ export const shell = ({ cmd }) => {
   );
 };
 
-export const rotate = ({ rotation = 0 }) => {
+export const shellStream = ({ cmd }) => {
+  return axios.get(
+    getAtxUrl() + '/shell/stream',
+    { command: cmd },
+  );
+};
+
+export const rotate = (rotation = 0) => {
   return axios.post(
-    apiHttpScheme + atxHost + '/info/rotation',
-    { direction: rotation },
-    { headers:
-      {'content-type': 'application/json;charset=UTF-8'},
-    },
+    getAtxUrl() + '/info/rotation?direction=2',
+    { direction: 2 },
+    // { headers:
+    //   {'content-type': 'application/json;charset=UTF-8'},
+    // },
   );
 };
 
 export const getInfo = () => {
   return axios.get(
-    apiHttpScheme + atxHost + '/info'
+    getAtxUrl() + '/info'
   );
 };
 
@@ -40,9 +40,52 @@ export const getProp = () => {
   return shell({ cmd: 'getprop' });
 };
 
+export const getMemUsage = () => {
+  return shell({ cmd: 'cat /proc/meminfo' }).then((res) => {
+    const data = {};
+    res.data.output.split(/\n/)
+      .filter((row) => /:/.test(row))
+      .map((row) => row.split(/\s*:\s*/))
+      .forEach(([name, value]) => data[name] = value);
+      // console.log(data)
+    return data;
+  });
+};
+
+export const getDiskUsage = () => {
+  return shell({ cmd: 'df' }).then(res => {
+    const data = {};
+    res.data?.output.split(/\n/).
+      filter((row) => /^\//.test(row))
+      .map((row) => row.split(/\s+/))
+      .forEach((row) => {
+        const [block, total, used, available, percent, point] = row;
+        const name = point ?? block;
+        data[name] = { block, total, used, available, percent: /%/.test(percent) ? percent : null }
+      });
+    // console.log(res.data?.output.split(/\n/).map((row) => row.split(/\s+/)));
+    return data;
+  });
+};
+
 export const getPropByJson = async () => {
   const { data: { output } } = await getProp();
   return JSON.parse('{' + output.replace(/[\[\]]/g, '"').replace(/\n/g, ',').replace(/,$/, '') + '}');
+};
+
+export const getProcesses = async () => {
+  return await axios.get(getAtxUrl() + '/proc/list')
+    .then(res => res.data);
+};
+
+export const getServices = async (param) => {
+  return axios.get(getAtxUrl() + '/services', param)
+    .then((res) => res.data);
+};
+
+export const getServiceDetail = async (name, param) => {
+  return axios.get(getAtxUrl() + `/services/${name}`, param)
+    .then((res) => res.data);
 };
 
 export const minitouchJsonToCmd = (obj) => {
@@ -207,18 +250,77 @@ export const sendKeybordCode = (e) => {
 	console.log('keybord_code', e.key, e.keyCode);
 };
 
-export const installApk = ({ file, url }) => {
+export const installApk = (file, config) => {
   const form = new FormData();
-  if (file) {
-    form.append('file', file);
-  } else if (url) {
-    form.append('url', url);
-  }
-  return axios.post(apiHttpScheme + atxHost + '/install', form);
+  form.append('file', file, 'filename.apk');
+  const request_config = {
+    method: 'post',
+    url: getAtxUrl() + '/install',
+    headers: {
+        // "Authorization": "Bearer " + access_token,
+        'Content-Type': 'multipart/form-data',
+    },
+    data: form,
+  };
+  return axios(request_config);
+};
+
+export const uninstallPkg = (pkg) => {
+  return axios.delete(getAtxUrl() + `/packages/${pkg}`);
+};
+
+// minicap
+export const installMinicap = () => {
+  return axios.put(getAtxUrl() + '/minicap');
+};
+export const getMinicapDisplay = () => {
+  return shell({ cmd: 'minicap -i' })
+    .then((res) => JSON.parse(res.data.output));
+};
+
+// minitouch
+export const installMinitouch = () => {
+  return axios.put(getAtxUrl() + '/minitouch');
+};
+export const checkMinitouch = () => {
+  return shell({ cmd: 'minitouch -h 2>&1' })
+    .then((res) => /usage/i.test(res.data.output));
+};
+
+// busybox
+export const installBusybox = () => {
+  return axios.get(getAtxUrl() + '/busybox/install');
+};
+export const removeBusybox = () => {
+  return axios.get(getAtxUrl() + '/busybox/uninstall');
+};
+export const getBusyboxVersion = () => {
+  return shell({ cmd: 'busybox 2>&1' })
+    .then((res) => res.data.output.match(/v[.0-9]+/)?.[0]);
+};
+
+// alist
+export const installAlist = () => {
+  return axios.put(getAtxUrl() + '/alist');
+};
+export const getAlistVersion = () => {
+  return axios.get(getAtxUrl() + '/alist')
+    .then((res) => {
+      let output = {};
+      res.data.data.split(/\n/).forEach((row) => {
+        const spIndex = row.indexOf(':');
+        output[row.substring(0, spIndex).trim().toLowerCase()] = row.substring(spIndex + 1).trim();
+      });
+      return output;
+    });
 };
 
 export const getPackages = (filter) => {
-  return axios.get(apiHttpScheme + atxHost + '/packages');
+  return axios.get(getAtxUrl() + '/packages');
+};
+
+export const getPkgInfo = (name) => {
+  return axios.get(getAtxUrl() + `/packages/${name}/info`);
 };
 
 export const sl4aApi = (params) => {
@@ -228,8 +330,8 @@ export const sl4aApi = (params) => {
   })
 
   return axios.post(
-    apiHttpScheme + atxHost + '/sl4a',
+    getAtxUrl() + '/sl4a',
     formData,
   );
   xhr.responseType = 'json';
-}
+};

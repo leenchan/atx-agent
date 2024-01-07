@@ -11,8 +11,9 @@ import Screen from './Screen';
 import ScreenFooter from './ScreenFooter';
 import { MessageContext } from '@ui/Message';
 import { LoadingContext } from '@hook/useLoading';
+import { LogContext } from '@hook/log';
+import { OptionContext, useOption } from '@hook/useOption';
 
-export const LogContext = createContext();
 export const InfoContext = createContext({});
 
 const RemoteControl = () => {
@@ -24,6 +25,7 @@ const RemoteControl = () => {
   const [msg, setMsg] = useState([]);
   const [log, setLog] = useState([]);
   const [info, setInfo] = useState({});
+  const option = useOption();
 
   const openMsg = (message) => {
     setMsg((prevMsg) => [...prevMsg, message]);
@@ -40,18 +42,11 @@ const RemoteControl = () => {
   const clearLog = () => {
     setLog(prev => []);
   };
-  const addLoading = (name) => {
-    setLoading(prev => prev.includes(name) ? prev : [...prev, name]);
-  };
-  const removeLoading = (name) => {
-    setLoading(prev => [...prev].filter(l => l !== name));
-  };
   const refreshInfo = async () => {
     loading.add('info');
     try {
-      const data = await getPropByJson();
-      await getInfo();
-      // const { data } = await getInfo();
+      // const data = await getPropByJson();
+      const { data } = await getInfo();
       setInfo(data);
     } catch (error) {
       console.error(error);
@@ -67,7 +62,12 @@ const RemoteControl = () => {
       if (e.target.tagName == 'INPUT' || e.target.tagName == 'TEXTAREA' || e.ctrlKey || e.altKey) {
         return;
       }
-      sendKeybordCode(e)
+      try {
+        sendKeybordCode(e);
+        addLog({ type: 'info', content: `keycode: ${e.keyCode}` })
+      } catch (error) {
+        
+      }
     });
     refreshInfo();
   }, []);
@@ -76,34 +76,39 @@ const RemoteControl = () => {
     <MessageContext.Provider value={{ msg, add: openMsg, remove: closeMsg, clear: clearMsg }}>
       <LoadingContext.Provider value={loading}>
         <LogContext.Provider value={{ log, add: addLog, clear: clearLog }}>
-          <InfoContext.Provider value={{ info, reload: refreshInfo }}>
-            <Box height={{ xs: 'auto', md: '100vh' }}>
-                <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }}>
-                  <Box
-                    flex="1"
-                    display="flex"
-                    flexDirection="column"
-                    borderRight={{ xs: 'none', md: theme.border.light }}
-                    borderBottom={{ xs: theme.border.light, md: 'none' }}
-                  >
-                    <Screen />
-                    <ScreenFooter onToggleController={() => setOpenController(!openController)} openController={openController} />
-                  </Box>
-                  <Divider orientation={isMobile ? 'horizontal' : 'vertical'} flexItem />
-                  <Box width={{ xs: '100%', md: '33.33%', xl: '25%' }} display="flex" flexDirection="column">
-                    <Box>
-                      <Controller openController={openController} />
+          <InfoContext.Provider value={{ info, refresh: refreshInfo }}>
+            <OptionContext.Provider value={option}>
+              <Box height={{ xs: 'auto', md: '100vh' }}>
+                  <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }}>
+                    <Box
+                      flex="1"
+                      display="flex"
+                      flexDirection="column"
+                      borderRight={{ xs: 'none', md: theme.border.light }}
+                      borderBottom={{ xs: theme.border.light, md: 'none' }}
+                    >
+                      <Screen />
+                      <ScreenFooter
+                        onToggleController={() => setOpenController(!openController)}
+                        openController={openController}
+                      />
                     </Box>
-                    <Box flex="1" display="flex" flexDirection="column">
-                      <Console />
+                    <Divider orientation={isMobile ? 'horizontal' : 'vertical'} flexItem />
+                    <Box width={{ xs: '100%', md: '33.33%', xl: '25%' }} display="flex" flexDirection="column">
+                      <Box>
+                        <Controller openController={openController} />
+                      </Box>
+                      <Box flex="1" display="flex" flexDirection="column">
+                        <Console />
+                      </Box>
                     </Box>
                   </Box>
                 </Box>
-              </Box>
-              <Messages
-                messages={msg}
-                onClose={closeMsg}
-              />
+                <Messages
+                  messages={msg}
+                  onClose={closeMsg}
+                />
+            </OptionContext.Provider>
           </InfoContext.Provider>
         </LogContext.Provider>
       </LoadingContext.Provider>

@@ -363,16 +363,27 @@ func (server *Server) initHTTPServer() {
 			timeoutSeconds = "60"
 		}
 		seconds, err := strconv.Atoi(timeoutSeconds)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		c := Command{
-			Args:    []string{command},
-			Shell:   true,
-			Timeout: time.Duration(seconds) * time.Second,
-		}
-		output, err := c.CombinedOutput()
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusBadRequest)
+		// 	return
+		// }
+		// c := Command{
+		// 	Args:    []string{command},
+		// 	Shell:   true,
+		// 	Timeout: time.Duration(seconds) * time.Second,
+		// }
+		// output, err := c.CombinedOutput()
+		var timer *time.Timer
+		cmd := exec.Command("sh", "-c", command)
+		cmd.Dir = "."
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%v:%v", os.Getenv("PATH"), binPath))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath))
+		timer = time.AfterFunc(time.Duration(seconds)*time.Second, func() {
+			timer.Stop()
+			cmd.Process.Kill()
+		})
+		output, err := cmd.Output()
 		exitCode := cmdError2Code(err)
 		renderJSON(w, map[string]interface{}{
 			"output":   string(output),
@@ -412,7 +423,12 @@ func (server *Server) initHTTPServer() {
 		if command == "" {
 			command = r.FormValue("c")
 		}
-		c := exec.Command("sh", "-c", command)
+		cmd := exec.Command("sh", "-c", command)
+		cmd.Dir = "."
+		cmd.Dir = "."
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%v:%v", os.Getenv("PATH"), binPath))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath))
 
 		httpWriter := newFakeWriter(func(data []byte) (int, error) {
 			n, err := w.Write(data)
@@ -425,18 +441,18 @@ func (server *Server) initHTTPServer() {
 			}
 			return n, err
 		})
-		c.Stdout = httpWriter
-		c.Stderr = httpWriter
+		cmd.Stdout = httpWriter
+		cmd.Stderr = httpWriter
 
 		// wait until program quit
 		cmdQuit := make(chan error, 0)
 		go func() {
-			cmdQuit <- c.Run()
+			cmdQuit <- cmd.Run()
 		}()
 		select {
 		case <-httpWriter.Err:
-			if c.Process != nil {
-				c.Process.Signal(syscall.SIGTERM)
+			if cmd.Process != nil {
+				cmd.Process.Signal(syscall.SIGTERM)
 			}
 		case <-cmdQuit:
 			log.Println("command quit")
@@ -456,7 +472,15 @@ func (server *Server) initHTTPServer() {
 		}()
 	})
 	m.HandleFunc("/services", func(w http.ResponseWriter, r *http.Request) {
-		renderJSON(w, service.Cmds())
+		services := service.Cmds()
+		s := make([]interface{}, len(services))
+		for i := range services {
+			s[i] = map[string]interface{}{
+				"name":    services[i],
+				"running": service.Running(services[i]),
+			}
+		}
+		renderJSON(w, s)
 	}).Methods("GET")
 	m.HandleFunc("/services/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := mux.Vars(r)["name"]
@@ -647,6 +671,7 @@ func (server *Server) initHTTPServer() {
 			deviceRotation = direction * 90
 			log.Println("rotation change received:", deviceRotation)
 		} else {
+			log.Println("decoderr:", err)
 			rotation, er := androidutils.Rotation()
 			if er != nil {
 				log.Println("rotation auto get err:", er)
@@ -687,7 +712,7 @@ func (server *Server) initHTTPServer() {
 			"rotation": deviceRotation,
 		})
 		// fmt.Fprintf(w, "rotation change to %d", deviceRotation)
-	})
+	}).Methods("POST")
 
 	/*
 	 # URLRules:
@@ -829,6 +854,22 @@ func (server *Server) initHTTPServer() {
 		})
 		json.NewEncoder(w).Encode(state)
 	}).Methods("GET")
+
+	m.HandleFunc("/packages/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := mux.Vars(r)["id"]
+		err := uninstallPackage(id)
+		if err != nil {
+			w.WriteHeader(500)
+			renderJSON(w, map[string]interface{}{
+				"success":     false,
+				"description": err.Error(),
+			})
+			return
+		}
+		renderJSON(w, map[string]interface{}{
+			"status": "success",
+		})
+	}).Methods("DELETE")
 
 	m.HandleFunc("/packages", func(w http.ResponseWriter, r *http.Request) {
 		pkgs, err := listPackages()
@@ -1069,7 +1110,7 @@ func (server *Server) initHTTPServer() {
 			scheme = "http"
 		}
 		baseUrl := scheme + "://" + r.Host
-		sl4aBin := filepath.Join(expath, "sl4a.py3")
+		sl4aBin := filepath.Join(binPath, "sl4a.py3")
 		if !fileExists(sl4aBin) {
 			if _, err := httpDownload(sl4aBin, baseUrl+"/assets/sl4a.py", 0755); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1119,7 +1160,7 @@ func (server *Server) initHTTPServer() {
 	}).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		running := service.Running("filebrowser")
 		if !running {
-			if !fileExists(filepath.Join(expath, "filebrowser")) {
+			if !fileExists(filepath.Join(binPath, "filebrowser")) {
 				if err := installFileBrowser(); err != nil {
 					http.Error(w, "Fail to install Filebrowser", http.StatusInternalServerError)
 				}
@@ -1133,31 +1174,88 @@ func (server *Server) initHTTPServer() {
 		filebrowserProxy.ServeHTTP(w, r)
 	})
 
-	// Aliyundrive Webdav
-	m.HandleFunc("/aliyundrive-webdav", func(w http.ResponseWriter, r *http.Request) {
-		err := installAliyundriveWebdav()
-		if err == nil {
-			log.Println("update aliyundrive-webdav success")
-			runShell("am", "start", "-n", "net.xdow.webdavaliyundriver/.MainActivity")
-			pkg, _ := androidutils.StatPackage("net.xdow.webdavaliyundriver")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status":  "success",
-				"name":    pkg.Name,
-				"version": pkg.Version.Name,
-			})
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+	m.HandleFunc("/busybox/{action}", func(w http.ResponseWriter, r *http.Request) {
+		action := mux.Vars(r)["action"]
+		var resp map[string]interface{}
+		switch action {
+		case "install":
+			err := installBusybox()
+			if err == nil {
+				resp = map[string]interface{}{
+					"success": true,
+					"data":    "Successfully to install busyboxo.",
+				}
+			}
+		case "uninstall":
+			err := os.RemoveAll(busyboxBin)
+			if err == nil {
+				resp = map[string]interface{}{
+					"success": true,
+					"data":    "Successfully to remove busyboxo.",
+				}
+			}
 		}
-	}).Methods("GET")
-	m.MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
-		match, _ := regexp.MatchString("/aliyun.*", r.URL.Path)
-		return match
-	}).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// fmt.Println(r.URL.Path)
-		re := regexp.MustCompile("^/aliyun/")
-		r.URL.Path = re.ReplaceAllString(r.URL.Path, "/")
-		filebrowserProxy.ServeHTTP(w, r)
+		// switch r.Method {
+		// case "PUT":
+		// 	err := installBusybox()
+		// 	if err == nil {
+		// 		resp = map[string]interface{}{
+		// 			"success": true,
+		// 			"data":    "Successfully to install busyboxo.",
+		// 		}
+		// 	}
+		// case "DELETE":
+		// 	err := os.RemoveAll(busyboxBin)
+		// 	if err == nil {
+		// 		resp = map[string]interface{}{
+		// 			"success": true,
+		// 			"data":    "Successfully to remove busyboxo.",
+		// 		}
+		// 	}
+		// }
+		if ok, success := resp["success"].(bool); ok {
+			if !success {
+				w.WriteHeader(400) // bad request
+			}
+		}
+		renderJSON(w, resp)
 	})
+
+	m.HandleFunc("/alist", func(w http.ResponseWriter, r *http.Request) {
+		var resp map[string]interface{}
+		switch r.Method {
+		case "PUT":
+			err := installAlist()
+			if err == nil {
+				resp = map[string]interface{}{
+					"success": true,
+					"data":    "Successfully to install alist.",
+				}
+			}
+		case "DELETE":
+			err := os.RemoveAll(alistBin)
+			if err == nil {
+				resp = map[string]interface{}{
+					"success": true,
+					"data":    "Successfully to remove alist.",
+				}
+			}
+		case "GET":
+			output, err := exec.Command(alistBin, "version").Output()
+			if err == nil {
+				resp = map[string]interface{}{
+					"success": true,
+					"data":    string(output),
+				}
+			}
+		}
+		if ok, success := resp["success"].(bool); ok {
+			if !success {
+				w.WriteHeader(400) // bad request
+			}
+		}
+		renderJSON(w, resp)
+	}).Methods("PUT", "DELETE", "GET")
 
 	// TODO(ssx): perfer to delete
 	// FIXME(ssx): screenrecord is not good enough, need to change later
@@ -1265,7 +1363,7 @@ func (server *Server) initHTTPServer() {
 
 	screenshotIndex := -1
 	nextScreenshotFilename := func() string {
-		targetFolder := filepath.Join(expath, "minicap-images")
+		targetFolder := filepath.Join(tmpPath, "minicap-images")
 		if _, err := os.Stat(targetFolder); err != nil {
 			os.MkdirAll(targetFolder, 0755)
 		}
@@ -1300,7 +1398,7 @@ func (server *Server) initHTTPServer() {
 		method := "screencap"
 		if getCachedProperty("ro.product.cpu.abi") == "x86" { // android emulator
 			method = "screencap"
-		} else if fileExists(filepath.Join(expath, "minicap")) && fileExists(filepath.Join(expath, "minicap.so")) && r.FormValue("minicap") != "false" && strings.ToLower(getCachedProperty("ro.product.manufacturer")) != "meizu" {
+		} else if fileExists(minicapBin) && fileExists(minicapSo) && r.FormValue("minicap") != "false" && strings.ToLower(getCachedProperty("ro.product.manufacturer")) != "meizu" {
 			method = "minicap"
 		} else if service.Running("uiautomator") {
 			method = "uiautomator"

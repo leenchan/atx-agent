@@ -10,6 +10,7 @@ import {
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import { MessageContext } from './Message';
 import { alpha } from '@mui/material';
+import axios from 'axios';
 
 export const Upload = ({
   sx,
@@ -26,6 +27,7 @@ export const Upload = ({
   error,
   helperText,
   uploadFile,
+  action,
   api,
 }) => {
   const theme = useTheme();
@@ -71,40 +73,42 @@ export const Upload = ({
     // uploading.push(...uploadingFiles);
     for (let i = 0; i < uploadingFiles.length; i += 1) {
       try {
-        const formData = new FormData();
-        formData.append('file', uploadingFiles[i]);
         let data = {};
-        if (uploadFile) {
-          data = (await uploadFile(
-            formData,
-            {
-              onUploadProgress: (progressEvent) => {
-                const progress = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
-                setUploading((prevUploading) => prevUploading.map((f) => {
-                  if (f === uploadingFiles[i]) {
-                    f.progress = progress;
-                  }
-                  return f;
-                }));
-                // uploadingFiles[i].progress = progress;
-                // console.log(progress);
-              },
-            }
-          ))?.data;
-          if (data.code !== 200) {
-            throw new Error(data);
-          }
+        const config = {
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploading((prevUploading) => prevUploading.map((f) => {
+              if (f === uploadingFiles[i]) {
+                f.progress = progress;
+              }
+              return f;
+            }));
+            // uploadingFiles[i].progress = progress;
+            // console.log(progress);
+          },
+        };
+        if (typeof action === 'function') {
+          data = (await action(uploadingFiles[i], config))?.data;
+        } else if (typeof action === 'string') {
+          const formData = new FormData();
+          formData.append('file', uploadingFiles[i]);
+          data = (await axios.post(action, formData, config))?.data;
+        } else {
+          throw new Error(`Failed to upload file: ${uploadingFiles[i].name}`)
         }
-        // const { key, url } = data.data;
+        // console.log(data);
+        if (data.status !== 'success') {
+          throw new Error(data);
+        }
         uploadedFiles.push(uploadingFiles[i]);
         if (typeof onChange === 'function') {
           onChange([{
             name: uploadingFiles[i].name,
             size: uploadingFiles[i].size,
             type: uploadingFiles[i].type,
-            ...data.data,
+            ...data,
           }]);
         }
       } catch (error) {
@@ -206,7 +210,7 @@ export const Upload = ({
         <input {...getInputProps()} />
         <Box display="flex" flexDirection="column" alignItems="center" width="100%" color={ isDragActive ? 'primary' : 'text'}>
           <Box>
-            <Box width="100%" textAlign="center" display="flex" justifyContent="center">
+            <Box width="100%" textAlign="center" display="flex" justifyContent="center" color="text.secondary">
               <CloudUploadOutlinedIcon fontSize="large" color="inherit" />
             </Box>
             <Box display="flex">

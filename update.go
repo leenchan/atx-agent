@@ -27,7 +27,7 @@ func formatString(format string, params map[string]string) string {
 }
 
 func makeTempDir() string {
-	target := filepath.Join(expath, "atx-update.tmp")
+	target := filepath.Join(tmpPath, "atx-update.tmp")
 	os.MkdirAll(target, 0755)
 	return target
 }

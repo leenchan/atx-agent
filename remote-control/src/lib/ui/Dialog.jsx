@@ -57,7 +57,7 @@ const Dialog = styled(
       <MuiDialog onClose={handleClose} {...props}
         classes={{ paper: className }}
         scroll={scroll}
-        TransitionComponent={Transition}
+        // TransitionComponent={Transition}
         sx={{
           ['& .MuiPaper-root']: isMobile ? {
             position: 'fixed',
@@ -76,7 +76,7 @@ const Dialog = styled(
         }}
       >
         { title &&
-          <DialogTitle display="flex" sx={{ padding: '1rem 1.5rem' }}>
+          <DialogTitle display="flex" sx={{ padding: '1rem 1.5rem', fontSize: '1.5rem', flexWrap: 'wrap' }}>
             {title}
             {/* {typeof title === 'string' ?
               <Typography variant="h2" sx={{ py: 2, fontSize: '1.125rem', minHeight: 5.75 }} flex="1">{title}</Typography>

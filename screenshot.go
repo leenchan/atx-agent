@@ -9,8 +9,8 @@ import (
 )
 
 func Screenshot(filename string, thumbnailSize string) (err error) {
-	ldlibrarypath := fmt.Sprintf("LD_LIBRARY_PATH=%v", expath)
-	minicapbin := fmt.Sprintf("%v/%v", expath, "minicap")
+	ldlibrarypath := fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath)
+	minicapbin := fmt.Sprintf("%v/%v", binPath, "minicap")
 	output, err := runShellOutput(ldlibrarypath, minicapbin, "-i")
 	if err != nil {
 		return
@@ -33,7 +33,7 @@ func Screenshot(filename string, thumbnailSize string) (err error) {
 	return nil
 }
 func screenshotWithMinicap(filename, thumbnailSize string) (err error) {
-	output, err := runShellOutput(fmt.Sprintf("LD_LIBRARY_PATH=%v", expath), fmt.Sprintf("%v/%v", expath, "minicap"), "-i")
+	output, err := runShellOutput(fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath), fmt.Sprintf("%v/%v", binPath, "minicap"), "-i")
 	if err != nil {
 		return
 	}
@@ -46,8 +46,8 @@ func screenshotWithMinicap(filename, thumbnailSize string) (err error) {
 		thumbnailSize = fmt.Sprintf("%dx%d", f.Width, f.Height)
 	}
 	if _, err = runShell(
-		fmt.Sprintf("LD_LIBRARY_PATH=%v", expath),
-		fmt.Sprintf("%v/%v", expath, "minicap"),
+		fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath),
+		fmt.Sprintf("%v/%v", binPath, "minicap"),
 		"-P", fmt.Sprintf("%dx%d@%s/%d", f.Width, f.Height, thumbnailSize, f.Rotation),
 		"-s", ">"+filename); err != nil {
 		err = errors.Wrap(err, "minicap")
@@ -63,7 +63,7 @@ func screenshotWithScreencap(filename string) (err error) {
 }
 
 func isMinicapSupported() bool {
-	output, err := runShellOutput(fmt.Sprintf("LD_LIBRARY_PATH=%v", expath), fmt.Sprintf("%v/%v", expath, "minicap"), "-i")
+	output, err := runShellOutput(fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath), fmt.Sprintf("%v/%v", binPath, "minicap"), "-i")
 	if err != nil {
 		return false
 	}
@@ -72,8 +72,8 @@ func isMinicapSupported() bool {
 		return false
 	}
 	output, err = runShell(
-		fmt.Sprintf("LD_LIBRARY_PATH=%v", expath),
-		fmt.Sprintf("%v/%v", expath, "minicap"),
+		fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath),
+		fmt.Sprintf("%v/%v", binPath, "minicap"),
 		"-P", fmt.Sprintf("%dx%d@%dx%d/%d", f.Width, f.Height, f.Width, f.Height, f.Rotation),
 		"-s", "2>/dev/null")
 	if err != nil {

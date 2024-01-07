@@ -5,6 +5,7 @@ import {
   Chip,
 } from '@mui/material';
 import { useTheme } from '@emotion/react';
+import { grey } from '@mui/material/colors';
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import RecordVoiceOverOutlinedIcon from '@mui/icons-material/RecordVoiceOverOutlined';
@@ -13,12 +14,19 @@ import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
-import { LogContext, InfoContext } from './RemoteControl';
+import ScreenRotationOutlinedIcon from '@mui/icons-material/ScreenRotationOutlined';
+import { InfoContext } from './RemoteControl';
 import { LoadingContext } from '@hook/useLoading';
-import { inputText, shell, getInfo, sl4aApi } from '@api/atx';
+import { LogContext } from '@hook/log';
+import { inputText, shell, getInfo, sl4aApi, rotate } from '@api/atx';
+import { getAtxHost } from '@api/common';
 import InfoModal from './Dialog/InfoModal';
-import InstallApkModal from './Dialog/InstallApkModal';
+import Packages from './Dialog/Packages';
 import SettingModal from './Dialog/SettingModal';
+import Modal from './Dialog/Modal';
+import { MessageContext } from '@ui/Message';
+import Loading from '@ui/Loading';
+import { copyToClipboard } from '@util';
 
 const BarIcon = ({
   Icon,
@@ -81,13 +89,14 @@ const Console = () => {
   const log = useContext(LogContext);
   const infoContext = useContext(InfoContext);
   const loading = useContext(LoadingContext);
+  const message = useContext(MessageContext);
   const [text, setText] = useState();
   const [info, setInfo] = useState();
   const [openInstallApk, setOpenInstallApk] = useState(false);
   const [openSetting, setOpenSetting] = useState(false);
+  const [output, setOutput] = useState();
   const disabledInputButtons = !(text && `${text}`.trim() !== '');
   
-
   const onTts = async (e) => {
     try {
       const res = await sl4aApi({ activity: 'ttsSpeak', arg1: textInput.value.replace(/\s+/g, ',') });
@@ -97,11 +106,15 @@ const Console = () => {
   };
 
   const onRunCmd = async (e) => {
+    loading.add('cmd');
     try {
       const res = await shell({ cmd: text });
+      console.log(res.data.output);
+      setOutput(res.data.output);
     } catch (error) {
-      
+      message.add({ type: 'error', content: error })
     }
+    loading.remove('cmd');
   };
 
   const onSendText = async (e) => {
@@ -117,9 +130,13 @@ const Console = () => {
     inputRef.current.focus();
   };
 
-  const onGetInfo = async () => {
-    console.log(infoContext)
-    setInfo(infoContext.info);
+  const onRotate = async () => {
+    const { data: { rotation } } = await rotate(2);
+    console.log(rotation)
+  };
+
+  const onOpenInfo = async () => {
+    setInfo(true);
     // try {
     //   const res = await getInfo();
     //   const { data: { output } } = await shell({ cmd: 'getprop' });
@@ -168,25 +185,27 @@ const Console = () => {
             }
             sx={{
               paddingRight: 0,
-              background: theme.palette.background.default,
-              '&:focus': {
-                background: theme.palette.background.lighter,
+              background: theme.palette.background.lighter,
+              '&.Mui-focused': {
+                background: theme.palette.background.default,
               },
             }}
-            value={text}
+            value={text ?? ''}
             onChange={(e) => setText(e.target.value)}
             onFocus={(e) => e.target.select()}
             inputRef={inputRef}
           />
         </Box>
         <Box display="flex" flexWrap="nowrap" justifyContent="right" borderTop={theme.border.lighter}>
-          <Box width="50%" color="text.secondary">
+          <Box width="50%" display="flex" justifyContent="flex-start" color="text.secondary">
             <BarIcon Icon={BlockOutlinedIcon} title="Clear" onClick={log.clear} />
+            <Divider orientation="vertical" variant="middle" flexItem />
+            <BarIcon Icon={ScreenRotationOutlinedIcon} onClick={() => onRotate()} />
           </Box>
           <Box width="50%" display="flex" justifyContent="flex-end" color="text.secondary">
-            <BarIcon Icon={InfoOutlinedIcon} color="inherit" title="Device Info" onClick={onGetInfo} />
+            <BarIcon Icon={InfoOutlinedIcon} color="inherit" title="Device Info" onClick={onOpenInfo} />
             <Divider orientation="vertical" variant="middle" flexItem />
-            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Package" onClick={onInstallApk} />
+            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Packages" onClick={onInstallApk} />
             <Divider orientation="vertical" variant="middle" flexItem />
             <BarIcon Icon={SettingsOutlinedIcon} color="inherit" title="Setting" onClick={onSetting} />
           </Box>
@@ -207,7 +226,7 @@ const Console = () => {
                 (content && (
                   <Box p={0.25} my={0.5} key={index}>
                     {content.props ? content : (
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary">
                         <LogChip type={type} sx={{ marginRight: '0.5rem' }} title={new Date(time)} />
                         {content}
                       </Typography>
@@ -219,24 +238,43 @@ const Console = () => {
           </Box>
         </Box>
         <Box textAlign="right" p={1}>
-          <Typography variant="subtitle2" color="text.secondary">
-            version: 1.0.1
+          <Typography fontSize="0.75rem" color="text.secondary">
+            {getAtxHost()}
           </Typography>
         </Box>
       </Box>
-      {console.log(loading.has('info'))}
       <InfoModal
-        info={info}
+        open={info}
         onClose={() => setInfo()}
-        loading={loading.has('info')}
       />
-      <InstallApkModal
+      <Packages
         open={openInstallApk}
         onClose={() => setOpenInstallApk(false)}
       />
       <SettingModal
         open={openSetting}
         onClose={() => setOpenSetting(false)}
+      />
+      <Modal
+        title="Command"
+        open={loading.has('cmd') || output !== undefined}
+        content={
+          <Box bgcolor={grey[900]} color={grey[100]} p={1} fontSize="0.825rem" sx={{ wordBreak: 'break-all' }} minHeight={100}>
+            {loading.has('cmd') && <Loading />}
+            {output ? output.split('\n').map((row) => (
+              <>
+                {row ? row.replace(/ /g, '\u00a0').replace(/\t/, '\u00a0\u00a0\u00a0\u00a0') : ''}
+                <br />
+              </>
+            )) : ''}
+          </Box>
+        }
+        footer={
+          <Box>
+            <Button color="secondary" onClick={() => setOutput()}>Cancel</Button>
+            <Button onClick={() => copyToClipboard(output)}>Copy</Button>
+          </Box>
+        }
       />
     </>
 
