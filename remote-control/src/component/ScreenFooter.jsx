@@ -8,6 +8,7 @@ import VolumeDownIcon from '@mui/icons-material/VolumeDown';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined';
 import DesktopAccessDisabledOutlinedIcon from '@mui/icons-material/DesktopAccessDisabledOutlined';
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
 import { useTheme } from '@emotion/react';
 import { inputKey, rotate } from '@api/atx';
 import { useBreakpoint } from '@theme';
@@ -62,13 +63,14 @@ const ScreenFooter = ({
       gap={0.5}
       color="text.secondary"
     >
-      <FooterButton Icon={PowerSettingsNewOutlinedIcon} onClick={() => onKeyPress(26)} />
-      <FooterButton Icon={GridViewOutlinedIcon} onClick={() => onKeyPress(187)} />
+      <FooterButton Icon={PowerSettingsNewOutlinedIcon} color="error" onClick={() => onKeyPress(26)} />
       <FooterButton Icon={HomeOutlinedIcon} onClick={() => onKeyPress(3)} />
       <FooterButton Icon={KeyboardBackspaceIcon} onClick={() => onKeyPress(4)} />
+      <FooterButton Icon={GridViewOutlinedIcon} onClick={() => onKeyPress(187)} />
+      <FooterButton Icon={MenuOutlinedIcon} onClick={() => onKeyPress(82)} />
       <Box border={theme.border.light} borderRadius={theme.radius.default}>
-        <FooterButton Icon={VolumeDownIcon} onClick={() => onKeyPress(24)} />
-        <FooterButton Icon={VolumeUpIcon} onClick={() => onKeyPress(25)} />
+        <FooterButton Icon={VolumeDownIcon} onClick={() => onKeyPress(25)} />
+        <FooterButton Icon={VolumeUpIcon} onClick={() => onKeyPress(24)} />
       </Box>
       <FooterButton
         Icon={option?.disableddMinicap ? DesktopAccessDisabledOutlinedIcon : DesktopWindowsOutlinedIcon}

@@ -5,10 +5,6 @@ import { ThemeProvider } from '@mui/material/styles';
 import { darkTheme } from '@theme';
 import RemoteControl from './RemoteControl';
 import useSetting, { SettingContext } from '@hook/useSetting';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
 // const LazyComponent = lazy(() => import('./LazyComponent'));
 
 function Main() {

@@ -5,7 +5,7 @@ import { Box, LinearProgress, Typography, Tabs, Tab } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Loading from '@ui/Loading';
 import { useEffect } from 'react';
-import { getMemUsage, getDiskUsage, getInfo, getProcesses, getServices } from '@api/atx';
+import { getMemUsage, getDiskUsage, getUptime, getInfo, getProcesses, getServices } from '@api/atx';
 import ProgressBar from '@ui/ProgressBar';
 import { LoadingContext } from '@hook/useLoading';
 import ProcessList from './ProcessList';
@@ -44,6 +44,7 @@ const InfoModal = ({
     ['/data', null],
     ['Android Version', deviceInfo.version],
     ['Android SDK API', deviceInfo.sdk],
+    ['Uptime', details.upTime],
   ];
 
   const fetchInfo = async () => {
@@ -55,10 +56,9 @@ const InfoModal = ({
       memory.MemUsed = memory.MemTotal - memory.MemFree;
       memory.MemUsedPercent = memory.MemUsed / memory.MemTotal * 100;
       memory.MemUsedColor = memory.MemUsedPercent > 75 ? 'warning' : memory.MemUsedPercent > 90 ? 'error' : 'success';
-      // console.log(memory)
       const disk = await getDiskUsage();
-      // console.log(disk)
-      setDetails({ memory, disk, info });
+      const upTime = await getUptime();
+      setDetails({ memory, disk, upTime, info });
     } catch (error) {
       console.error(error);
     }
@@ -68,7 +68,6 @@ const InfoModal = ({
     loading.add('process');
     try {
       const nextProcesses = await getProcesses();
-      console.log(nextProcesses)
       setProcesses(nextProcesses);
     } catch (error) {
       
@@ -87,27 +86,25 @@ const InfoModal = ({
     loading.remove('service');
   };
 
-  useEffect(() => {
-    switch (tab) {
+  const onTabChange = (e, v) => {
+    setTab(v);
+    switch (v) {
       case 'info':
         fetchInfo();
         break;
       case 'process':
         fetchProcess();
         break;
-      case 'service':
-        fetchService();
-        break;
       default:
         break;
     }
-  }, [tab])
+  };
 
   useEffect(() => {
     if (open) {
       setTab('info');
+      fetchInfo();
     } else {
-      setTab();
       setDetails({});
     }
   }, [open]);
@@ -122,7 +119,7 @@ const InfoModal = ({
           </Box>
           Device Info
           <Box width="100%">
-            <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ borderBottom: theme.border.light }}>
+            <Tabs value={tab ?? ''} onChange={onTabChange} sx={{ borderBottom: theme.border.light }}>
               <Tab label="Device" value="info" />
               <Tab label="Process" value="process" />
               {/* <Tab label="Service" value="service" /> */}
@@ -130,6 +127,7 @@ const InfoModal = ({
           </Box>
         </>
       }
+      closeButton="both"
       {...props}
     >
       {loading.has('info', 'process', 'service') ? (
@@ -147,7 +145,7 @@ const InfoModal = ({
                         {title}
                       </Typography>
                     </Box>
-                    <Box>
+                    <Box flex="1">
                       {title === 'Memory' && (
                         <ProgressBar
                           type={details.memory?.MemUsedColor}

@@ -10,23 +10,25 @@ import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import RecordVoiceOverOutlinedIcon from '@mui/icons-material/RecordVoiceOverOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 import ScreenRotationOutlinedIcon from '@mui/icons-material/ScreenRotationOutlined';
-import { InfoContext } from './RemoteControl';
+import PowerSettingsNewOutlinedIcon from '@mui/icons-material/PowerSettingsNewOutlined';
 import { LoadingContext } from '@hook/useLoading';
 import { LogContext } from '@hook/log';
-import { inputText, shell, getInfo, sl4aApi, rotate } from '@api/atx';
+import { inputText, shell, getInfo, sl4aApi, rotate, inputKey } from '@api/atx';
 import { getAtxHost } from '@api/common';
 import InfoModal from './Dialog/InfoModal';
 import Packages from './Dialog/Packages';
+import { AddonModal } from './Dialog/AddonModal';
 import SettingModal from './Dialog/SettingModal';
 import Modal from './Dialog/Modal';
 import { MessageContext } from '@ui/Message';
 import Loading from '@ui/Loading';
 import { copyToClipboard } from '@util';
+import { CloseOutlined } from '@mui/icons-material';
 
 const BarIcon = ({
   Icon,
@@ -87,14 +89,15 @@ const Console = () => {
   const inputRef = useRef();
   const theme = useTheme();
   const log = useContext(LogContext);
-  const infoContext = useContext(InfoContext);
   const loading = useContext(LoadingContext);
   const message = useContext(MessageContext);
   const [text, setText] = useState();
   const [info, setInfo] = useState();
-  const [openInstallApk, setOpenInstallApk] = useState(false);
+  const [openPackages, setOpenPackages] = useState(false);
+  const [openAddons, setOpenAddons] = useState(false);
   const [openSetting, setOpenSetting] = useState(false);
   const [output, setOutput] = useState();
+  const [exitCode, setExitCode] = useState();
   const disabledInputButtons = !(text && `${text}`.trim() !== '');
   
   const onTts = async (e) => {
@@ -106,13 +109,21 @@ const Console = () => {
   };
 
   const onRunCmd = async (e) => {
+    setExitCode();
+    setOutput();
     loading.add('cmd');
     try {
       const res = await shell({ cmd: text });
-      console.log(res.data.output);
-      setOutput(res.data.output);
+      setExitCode(res.data.exitCode);
+      if (res.data.output) {
+        setOutput(res.data.output);
+      } else {
+        throw new Error(res.data.error ?? res);
+      }
     } catch (error) {
-      message.add({ type: 'error', content: error })
+      // console.log(error);
+      setOutput(String(error));
+      // message.add({ type: 'error', content: error });
     }
     loading.remove('cmd');
   };
@@ -146,8 +157,17 @@ const Console = () => {
     // }
   };
 
-  const onInstallApk = () => {
-    setOpenInstallApk(true);
+  const onKeyPress = (code) => {
+    inputKey(code);
+    log.add({ content: `input key ${code}` });
+  };
+
+  const onPackages = () => {
+    setOpenPackages(true);
+  };
+
+  const onAddons = () => {
+    setOpenAddons(true);
   };
 
   const onSetting = () => {
@@ -167,8 +187,9 @@ const Console = () => {
                 <IconButton
                   sx={{ visibility: (text && text !== '' ? 'unset' : 'hidden') }}
                   onClick={onClear}
+                  size="small"
                 >
-                  <BackspaceOutlinedIcon htmlColor={theme.palette.text.secondary} fontSize="small" />
+                  <CloseOutlined htmlColor={theme.palette.text.secondary} fontSize="small" />
                 </IconButton>
                 <IconButton onClick={onTts} disabled={disabledInputButtons}>
                   <RecordVoiceOverOutlinedIcon />
@@ -201,11 +222,15 @@ const Console = () => {
             <BarIcon Icon={BlockOutlinedIcon} title="Clear" onClick={log.clear} />
             <Divider orientation="vertical" variant="middle" flexItem />
             <BarIcon Icon={ScreenRotationOutlinedIcon} onClick={() => onRotate()} />
+            <Divider orientation="vertical" variant="middle" flexItem />
+            <BarIcon Icon={PowerSettingsNewOutlinedIcon} onClick={() => onKeyPress(26)} />
           </Box>
           <Box width="50%" display="flex" justifyContent="flex-end" color="text.secondary">
             <BarIcon Icon={InfoOutlinedIcon} color="inherit" title="Device Info" onClick={onOpenInfo} />
             <Divider orientation="vertical" variant="middle" flexItem />
-            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Packages" onClick={onInstallApk} />
+            <BarIcon Icon={Inventory2OutlinedIcon} color="inherit" title="Packages" onClick={onPackages} />
+            <Divider orientation="vertical" variant="middle" flexItem />
+            <BarIcon Icon={ExtensionOutlinedIcon} color="inherit" title="Packages" onClick={onAddons} />
             <Divider orientation="vertical" variant="middle" flexItem />
             <BarIcon Icon={SettingsOutlinedIcon} color="inherit" title="Setting" onClick={onSetting} />
           </Box>
@@ -226,7 +251,7 @@ const Console = () => {
                 (content && (
                   <Box p={0.25} my={0.5} key={index}>
                     {content.props ? content : (
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography component="div" variant="body2" color="text.secondary">
                         <LogChip type={type} sx={{ marginRight: '0.5rem' }} title={new Date(time)} />
                         {content}
                       </Typography>
@@ -248,8 +273,12 @@ const Console = () => {
         onClose={() => setInfo()}
       />
       <Packages
-        open={openInstallApk}
-        onClose={() => setOpenInstallApk(false)}
+        open={openPackages}
+        onClose={() => setOpenPackages(false)}
+      />
+      <AddonModal
+        open={openAddons}
+        onClose={() => setOpenAddons(false)}
       />
       <SettingModal
         open={openSetting}
@@ -257,6 +286,14 @@ const Console = () => {
       />
       <Modal
         title="Command"
+        headerAddon={(exitCode === 0 || exitCode) && (
+          <Chip
+            label={`CODE: ${exitCode}`}
+            color={exitCode === 0 ? 'success' : 'error'}
+            size="small"
+            variant="outlined"
+          />
+        )}
         open={loading.has('cmd') || output !== undefined}
         content={
           <Box bgcolor={grey[900]} color={grey[100]} p={1} fontSize="0.825rem" sx={{ wordBreak: 'break-all' }} minHeight={100}>
@@ -269,6 +306,7 @@ const Console = () => {
             )) : ''}
           </Box>
         }
+        icon={<TerminalOutlinedIcon fontSize="large" />}
         footer={
           <Box>
             <Button color="secondary" onClick={() => setOutput()}>Cancel</Button>

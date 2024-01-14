@@ -40,6 +40,7 @@ func getDeviceInfo() *DeviceInfo {
 	devInfo.HWAddr, _ = androidutils.HWAddrWLAN()
 	display, _ := androidutils.WindowSize()
 	devInfo.Display = &display
+	devInfo.Rotation, _ = androidutils.Rotation()
 	battery := androidutils.Battery{}
 	battery.Update()
 	devInfo.Battery = &battery

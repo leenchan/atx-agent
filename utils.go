@@ -85,6 +85,10 @@ func (c *Command) computedArgs() (name string, args []string) {
 func (c Command) newCommand() *exec.Cmd {
 	name, args := c.computedArgs()
 	cmd := exec.Command(name, args...)
+	cmd.Dir = "."
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%v:%v", os.Getenv("PATH"), binPath))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath))
 	if c.Stdout != nil {
 		cmd.Stdout = c.Stdout
 	}
@@ -286,6 +290,18 @@ type PackageInfo struct {
 	VersionCode  int         `json:"versionCode"`
 	Size         int64       `json:"size"`
 	Icon         image.Image `json:"-"`
+	ApkPath      string      `json:"apkPath"`
+}
+
+func getApkPath(packageName string) (apkPath string, err error) {
+	outbyte, err := runShell("pm", "path", packageName)
+	output := strings.TrimSpace(string(outbyte))
+	if !strings.HasPrefix(output, "package:") {
+		err = errors.New("package " + strconv.Quote(packageName) + " not found")
+		return
+	}
+	apkPath = output[len("package:"):]
+	return
 }
 
 func readPackageInfo(packageName string) (info PackageInfo, err error) {
@@ -295,19 +311,19 @@ func readPackageInfo(packageName string) (info PackageInfo, err error) {
 		err = errors.New("package " + strconv.Quote(packageName) + " not found")
 		return
 	}
-	apkpath := output[len("package:"):]
-	return readPackageInfoFromPath(apkpath)
+	apkPath := output[len("package:"):]
+	return readPackageInfoFromPath(apkPath)
 }
 
-func readPackageInfoFromPath(apkpath string) (info PackageInfo, err error) {
-	finfo, err := os.Stat(apkpath)
+func readPackageInfoFromPath(apkPath string) (info PackageInfo, err error) {
+	finfo, err := os.Stat(apkPath)
 	if err != nil {
 		return
 	}
 	info.Size = finfo.Size()
-	pkg, err := apk.OpenFile(apkpath)
+	pkg, err := apk.OpenFile(apkPath)
 	if err != nil {
-		err = errors.Wrap(err, apkpath)
+		err = errors.Wrap(err, apkPath)
 		return
 	}
 	defer pkg.Close()
@@ -318,6 +334,7 @@ func readPackageInfoFromPath(apkpath string) (info PackageInfo, err error) {
 	info.Icon, _ = pkg.Icon(nil)
 	info.VersionCode = int(pkg.Manifest().VersionCode.MustInt32())
 	info.VersionName = pkg.Manifest().VersionName.MustString()
+	info.ApkPath = apkPath
 	return
 }
 
@@ -820,7 +837,7 @@ func getGithubLatestReleaseUrl(repo string, fileRegex string) (string, error) {
 	assetRegex, _ := regexp.Compile("src=\"[^\"]+/expanded_assets/[^\"]+\"")
 	assetUrlSrc := assetRegex.FindString(string(html))
 	assetUrl := strings.Split(assetUrlSrc, "\"")[1]
-	fmt.Print("asset url: " + assetUrl)
+	// log.Info("asset url: " + assetUrl)
 	// Step 2
 	res, err = goreq.Request{
 		Uri:             assetUrl,

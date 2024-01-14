@@ -194,7 +194,6 @@ func installFileBrowser() error {
 	if !ok {
 		return errors.New("math: square root of negative number")
 	}
-	filebrowserBin := filepath.Join(binPath, "filebrowser")
 	url, err := getGithubLatestReleaseUrl("filebrowser/filebrowser", "[^\"]+linux-"+arch+"[^\"]+")
 	if err != nil {
 		return err
@@ -228,6 +227,24 @@ func installBusybox() error {
 	// log.Println(busyboxBin)
 	if _, err := httpDownload(busyboxBin, url, 0755); err != nil {
 		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func installCurl() error {
+	abi := getCachedProperty("ro.product.cpu.abi")
+	abiMap := map[string]string{"armeabi-v7a": "armv7", "armv8l": "aarch64", "x86": "i386", "x86_64": "amd64"}
+	arch, ok := abiMap[abi]
+	if !ok {
+		return errors.New("math: square root of negative number")
+	}
+	url, err := getGithubLatestReleaseUrl("moparisthebest/static-curl", "[^\"]+/curl-"+arch)
+	fmt.Println("Download: " + url)
+	if err != nil {
+		return err
+	}
+	if _, err := httpDownload(curlBin, url, 0755); err != nil {
 		return err
 	}
 	return nil

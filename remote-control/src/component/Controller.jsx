@@ -12,10 +12,20 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
+import SettingsRemoteOutlinedIcon from '@mui/icons-material/SettingsRemoteOutlined';
+import { BackspaceOutlined } from '@mui/icons-material';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
+import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined';
+import DesktopAccessDisabledOutlinedIcon from '@mui/icons-material/DesktopAccessDisabledOutlined';
 import { inputKey } from '@api/atx';
 import { LogContext } from '@hook/log';
+import { OptionContext } from '@hook/useOption';
 
 const ControllerButton = ({ Icon, children, sx, ...props }) => {
   const { isMobile } = useBreakpoint();
@@ -43,10 +53,11 @@ const ControllerButton = ({ Icon, children, sx, ...props }) => {
   );
 };
 
-const Controller = ({ openController }) => {
+const Controller = ({ openController, onToggleController }) => {
   const theme = useTheme();
   const log = useContext(LogContext);
   const borderRadiusA = theme.radius[5];
+  const { option, set: setOption } = useContext(OptionContext);
 
   const groupButtonStyle = {
     border: theme.border.dark,
@@ -57,14 +68,29 @@ const Controller = ({ openController }) => {
     log.add({ content: `input key ${code}` });
   };
 
+  const topButtonStyle = { ...groupButtonStyle, borderRadius: '50%' };
+
   return (
     <Box bgcolor={theme.palette.background.panel} display="flex" flexDirection="column">
-      <Box flex="1">
+      <Box flex="1" borderBottom={theme.border.light}>
         <Collapse in={openController}>
-          <Box p={2} borderBottom={theme.border.light}>
+          <Box p={2}>
             <Box maxWidth={320} mx="auto">
+              <Box display="flex" justifyContent="space-between" mb={2}>
+                <ControllerButton Icon={HomeOutlinedIcon} onClick={() => onKeyPress(3)} sx={topButtonStyle} />
+                <ControllerButton Icon={KeyboardBackspaceIcon} onClick={() => onKeyPress(4)} sx={topButtonStyle} />
+                <ControllerButton Icon={GridViewOutlinedIcon} onClick={() => onKeyPress(187)} sx={topButtonStyle} />
+                <ControllerButton Icon={MenuOutlinedIcon} onClick={() => onKeyPress(82)} sx={topButtonStyle} />
+              </Box>
               <Box display="flex">
                 <Box width="20%">
+                  <Box mb={1} textAlign="center">
+                    <ControllerButton
+                      Icon={option?.disableddMinicap ? DesktopAccessDisabledOutlinedIcon : DesktopWindowsOutlinedIcon}
+                      onClick={() => setOption({ disableddMinicap: !option?.disableddMinicap })}
+                      sx={{ borderTop: theme.border.darker, ...groupButtonStyle, borderRadius: '50%' }} size="medium"
+                    />
+                  </Box>
                   <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA} overflow="hidden">
                     <ControllerButton Icon={SkipPreviousOutlinedIcon} onClick={() => onKeyPress(88)} />
                     <ControllerButton Icon={SkipNextOutlinedIcon} onClick={() => onKeyPress(87)} />
@@ -79,24 +105,27 @@ const Controller = ({ openController }) => {
                     </Box>
                     <ControllerButton Icon={KeyboardArrowLeftIcon} onClick={() => onKeyPress(21)} />
                     <ControllerButton sx={{ border: theme.border.darker, borderRadius: '50%' }} onClick={() => onKeyPress(66)}>
-                      <Typography>OK</Typography>
+                      <Typography sx={{ fontWeight: 'bold' }}>OK</Typography>
                     </ControllerButton>
                     <ControllerButton Icon={KeyboardArrowRightIcon} onClick={() => onKeyPress(22)} />
                     <Box>
                     </Box>
-                    <ControllerButton Icon={KeyboardArrowDownIcon} onClick={() => onKeyPress(20)} />
+                      <ControllerButton Icon={KeyboardArrowDownIcon} onClick={() => onKeyPress(20)} />
                     <Box>
                     </Box>
                   </Box>
                 </Box>
                 <Box width="20%">
+                  <Box mb={1} textAlign="center">
+                    <ControllerButton Icon={BackspaceOutlined} onClick={() => onKeyPress(67)} sx={{ borderTop: theme.border.darker, ...groupButtonStyle, borderRadius: '50%' }} size="medium" />
+                  </Box>
                   <Box sx={groupButtonStyle} display="flex" flexDirection="column" borderRadius={borderRadiusA} overflow="hidden">
                     <ControllerButton Icon={StopIcon} onClick={() => onKeyPress(86)} />
                     <ControllerButton Icon={PlayArrowIcon} onClick={() => onKeyPress(85)} />
                   </Box>
                 </Box>
               </Box>
-              <Box display="flex" mt={1}>
+              <Box display="flex" mt={2}>
                 <Box width="20%" display="flex">
                   <Box
                     display="flex"
@@ -107,9 +136,10 @@ const Controller = ({ openController }) => {
                     sx={{ ...groupButtonStyle, '& > *': { height: '33.33%' } }}
                   >
                     <ControllerButton Icon={AddIcon} onClick={() => onKeyPress(24)} />
-                    <Box display="flex" alignItems="center" justifyContent="center" sx={{ opacity: 0.25, '&:after': { content: '""' } }}>
+                    <ControllerButton Icon={VolumeOffIcon} onClick={() => onKeyPress(164)} />
+                    {/* <Box display="flex" alignItems="center" justifyContent="center" sx={{ opacity: 1, '&:after': { content: '""' } }}>
                       <VolumeUpOutlinedIcon />
-                    </Box>
+                    </Box> */}
                     <ControllerButton Icon={RemoveIcon} onClick={() => onKeyPress(25)} />
                   </Box>
                 </Box>
@@ -150,6 +180,13 @@ const Controller = ({ openController }) => {
             </Box>
           </Box>
         </Collapse>
+        <Box textAlign="center" sx={{ cursor: 'pointer' }} onClick={onToggleController}>
+          {openController ? (
+            <KeyboardArrowUpIcon />
+          ) : (
+            <KeyboardArrowDownIcon />
+          )}
+        </Box>
       </Box>
       {/* <Button
         variant="outlined"

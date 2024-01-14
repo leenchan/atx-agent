@@ -14,6 +14,9 @@ import { MessageContext } from '@ui/Message';
 import Loading from '@ui/Loading';
 import { OptionContext } from '@hook/useOption';
 import { delay } from '@util';
+import { InfoContext } from './RemoteControl';
+
+const commitEvent = { operation: 'c' };
 
 const ScreenCanvas = styled.canvas`
   display: block;
@@ -27,66 +30,27 @@ const msgConnected = {
 
 const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
-const initDisplay = async () => {
-  try {
-    const { data } = await shell({ cmd: 'dumpsys display' });
-    if (data.output) {
-      // console.log(data.output)
-      var orientationData = data.output.match(/orientation=[0-3]/);
-      if (orientationData && orientationData[0]) {
-        window.orientation = orientationData[0].split('=')[1] * 90;
-        console.log('orientation: ' + window.orientation);
-      }
-      var mStableDisplaySize = data.output.match(/mStableDisplaySize=[^\(]*\([^\)]+\)/);
-      if (mStableDisplaySize && mStableDisplaySize[0]) {
-        window.displayPhySize = mStableDisplaySize[0].replace(/.*\(/,'').replace(/([0-9]+),\s*([0-9]+).*/, '$1x$2');
-        console.log('displayPhySize:' + window.displayPhySize);
-      }
-    }
-  } catch (error) {
-    console.error(error);
-  }
+const Pointer = ({ pointer }) => {
+  useEffect(() => {
+    // not work!
+  }, [pointer.move]);
+
+  return (
+    <Box
+      sx={{
+        opacity: 0.5,
+        position: 'absolute',
+        width: '5%',
+        paddingBottom: '5%',
+        borderRadius: '50%',
+        background: '#fff',
+        transform: 'translate(-2.5%, -2.5%)',
+      }}
+    />
+  );
 };
 
-const onReceiveData = ({ canvas, onSizeChange }) => (message) => {
-  if (!canvas || !canvas.getContext) {
-    return;
-  }
-  // Direction Changed
-  if (typeof message.data === 'string' && message.data.match(/rotation [0-9]+/)) {
-    window.orientation = message.data.match(/[0-9]+/)[0];
-    initDisplay();
-    return;
-  }
-  const g = canvas.getContext('2d');
-  const URL = window.URL || window.webkitURL;
-  let blob = new Blob([message.data], {type: 'image/jpeg'});
-  let url = URL.createObjectURL(blob);
-  let img = new Image();
-  img.onload = function() {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    // mainDOM.classList.add('horizontal');
-    // if (img.width >= img.height) {
-    //   mainDOM.classList.add('horizontal');
-    // } else {
-    //   mainDOM.classList.remove('horizontal');
-    // }
-    // if (img.width + 'x' + img.height != window.screenSize) {
-    //   initDisplay();
-    //   window.screenSize = img.width + 'x' + img.height;
-    // }
-    g.drawImage(img, 0, 0);
-    img.onload = null;
-    // img.src = BLANK_IMG;
-    img = null;
-    url = null;
-    blob = null;
-  };
-  img.src = url;
-};
-
-const Screen = ({}) => {
+const Screen = ({ ...props }) => {
   const theme = useTheme();
   const canvasRef = useRef();
   const minicap = useRef();
@@ -98,68 +62,113 @@ const Screen = ({}) => {
   const log = useContext(LogContext);
   const { setting } = useContext(SettingContext);
   const { option = {} } = useContext(OptionContext);
+  const { current: pointer } = useRef({ down: [], move: [], scroll: {} });
+  const { info, refresh: refreshInfo } = useContext(InfoContext);
+  const [display, setDisplay] = useState({});
 
-  let pointersDown = [];
-  let pointersMove = [];
   let scrollAction = {};
-  
-  const clearPointer = (pointerId) => {
-    pointersDown = pointersDown.filter(p => p.pointerId !== pointerId);
-    pointersMove = pointersMove.filter(p => p.pointerId !== pointerId);
-  };
-  const onMinitouchSend = (event) => {
-    sendTouch({
-      minitouch: minitouch.current,
-      event,
-      onSuccess: () => {
 
-      },
-    });
+  const clearPointer = (pointerId) => {
+    pointer.down = pointer.down.filter(p => p.pointerId !== pointerId);
+    pointer.move = pointer.move.filter(p => p.pointerId !== pointerId);
+  };
+  const onMinitouchSend = async (event) => {
+    try {
+      await sendTouch({
+        minitouch: minitouch.current,
+        event,
+        display: info?.display,
+        rotation: info?.rotation,
+        pointerDown: pointer?.down,
+        pointerMove: pointer?.move,
+        onSend: (obj) => {
+          // console.log(obj);
+          // log.add({ type: 'info', content: `x:${obj.xP} y:${obj.yP}` });
+        },
+      });
+    } catch (error) {
+    }
   };
   const onPointerDown = (e) => {
     if (e.button == 2) {return}
-    var event = { pointerId: e.pointerId, operation: 'd', index: pointersDown.length, xP: (e.offsetX ?? e.clientX) / e.target.clientWidth, yP: (e.offsetY ?? e.clientY) / e.target.clientHeight, pressure: 50};
+    const event = { pointerId: e.pointerId, operation: 'd', index: pointer.down.length, xP: e.nativeEvent.offsetX / e.target.clientWidth, yP: e.nativeEvent.offsetY / e.target.clientHeight, pressure: 50};
     // console.log(e, event)
     onMinitouchSend(event);
-    onMinitouchSend({ operation: 'c' });
-    pointersDown.push(event);
+    onMinitouchSend(commitEvent);
+    pointer.down.push(event);
   };
   const onPointerUp = (e) => {
     if (e.button == 2) {return}
-    if (pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
-      onMinitouchSend({ operation: 'u', index: pointersDown.map(function(p) {return p.pointerId}).indexOf(e.pointerId) });
-      onMinitouchSend({ operation: 'c' });
+    if (pointer.down.find(function(p) {return p.pointerId === e.pointerId})) {
+      const event = { operation: 'u', index: pointer.down.map(function(p) {return p.pointerId}).indexOf(e.pointerId) };
+      onMinitouchSend(event);
+      onMinitouchSend(commitEvent);
       clearPointer(e.pointerId);
     }
   };
   const onPointerOut = (e) => {
     // console.log(e)
     if (e.button == 2) {return}
-    if (pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
-      onMinitouchSend({ operation: 'u', index: pointersDown.map(function(p) {return p.pointerId}).indexOf(e.pointerId) });
-      onMinitouchSend({ operation: 'c' });
+    if (pointer.down.find(function(p) {return p.pointerId === e.pointerId})) {
+      const event = { operation: 'u', index: pointer.down.map(function(p) {return p.pointerId}).indexOf(e.pointerId) };
+      onMinitouchSend(event);
+      onMinitouchSend(commitEvent);
       clearPointer(e.pointerId);
     }
   };
   const onPointerMove = (e) => {
     if (e.button == 2) {return}
-    if (!pointersDown.find(function(p) {return p.pointerId === e.pointerId})) {
+    if (!pointer.down.find((p) => p.pointerId === e.pointerId)) {
       return false;
     }
-    var pointersMoveIndex = pointersMove.map(function(p) {return p.pointerId}).indexOf(e.pointerId);
-    var event = { pointerId: e.pointerId, operation: 'm', index: pointersMoveIndex >= 0 ? pointersMoveIndex : 0, xP: e.offsetX / e.target.clientWidth, yP: e.offsetY / e.target.clientHeight, pressure: 50};
+    const pointersMoveIndex = pointer.move.map(function(p) {return p.pointerId}).indexOf(e.pointerId);
+    const event = { pointerId: e.pointerId, operation: 'm', index: pointersMoveIndex >= 0 ? pointersMoveIndex : 0, xP: e.nativeEvent.offsetX / e.target.clientWidth, yP: e.nativeEvent.offsetY / e.target.clientHeight, pressure: 50};
     onMinitouchSend(event);
-    onMinitouchSend({ operation: 'c' });
+    onMinitouchSend(commitEvent);
     if (pointersMoveIndex >= 0) {
-      pointersMove.splice(pointersMoveIndex, 1, event);
+      // pointer.move.splice(pointersMoveIndex, 1, event);
+      pointer.move = pointer.move.map((e, i) => i === pointersMoveIndex ? event : e);
     } else {
-      pointersMove.push(event);
+      pointer.move = [...pointer.move, event];
+      // pointer.move.push(event);
     }
   };
   const onContextMenu = (e) => {
     e.preventDefault();
     inputKey(4);
     return false;
+  };
+  
+  const onScreenChange = ({ canvas, onSizeChange }) => (message) => {
+    if (!canvas || !canvas.getContext) {
+      return;
+    }
+    const g = canvas.getContext('2d');
+    const URL = window.URL || window.webkitURL;
+    let blob = new Blob([message.data], {type: 'image/jpeg'});
+    let url = URL.createObjectURL(blob);
+    let img = new Image();
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      // mainDOM.classList.add('horizontal');
+      // if (img.width >= img.height) {
+      //   mainDOM.classList.add('horizontal');
+      // } else {
+      //   mainDOM.classList.remove('horizontal');
+      // }
+      // if (img.width + 'x' + img.height != window.screenSize) {
+      //   initDisplay();
+      //   window.screenSize = img.width + 'x' + img.height;
+      // }
+      g.drawImage(img, 0, 0);
+      img.onload = null;
+      // img.src = BLANK_IMG;
+      img = null;
+      url = null;
+      blob = null;
+    };
+    img.src = url;
   };
 
   const onConnectMinicap = () => {
@@ -170,24 +179,36 @@ const Screen = ({}) => {
     if (minicap.current?.readyState === 3) {
       minicap.current.close();
     }
-    minicap.current = createMinicapWebsocket({
-      onOpen: () => {
-        log.add({ type: 'info', content: 'connected to minicap.' });
-      },
-      onMessage: (data) => {
-        if (typeof data.data !== 'string') {
-        }
-        onReceiveData({
-          canvas: canvasRef.current,
-        })(data);
-      },
-      onError: () => {
-        log.add({ type: 'error', content: 'Failed to connect to minicap.' });
-        minicap.current.close();
-        // minicap.current = undefined;
-      },
-      updateDuration: 0,
-    });
+    try {
+      minicap.current = createMinicapWebsocket({
+        onOpen: () => {
+          log.add({ type: 'info', content: 'connected to minicap.' });
+        },
+        onMessage: (data) => {
+          if (typeof data.data === 'string') {
+            console.log(data.data);
+            // Direction Changed
+            if (typeof data.data === 'string' && data.data.match(/rotation [0-9]+/)) {
+              refreshInfo();
+              return;
+            }
+          } else {
+  
+          }
+          onScreenChange({
+            canvas: canvasRef.current,
+          })(data);
+        },
+        onError: () => {
+          log.add({ type: 'error', content: 'Failed to connect to minicap.' });
+          minicap.current.close();
+          // minicap.current = undefined;
+        },
+        updateDuration: 0,
+      });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const onConnectMinitouch = () => {
@@ -198,19 +219,23 @@ const Screen = ({}) => {
     if (minitouch.current?.readyState === 3) {
       minitouch.current.close();
     }
-    minitouch.current = createMinitouchWebsocket({
-      onOpen: () => {
-        log.add({ type: 'info', content: 'connected to minitouch.' });
-      },
-      onMessage: (data) => {
-        // console.log(data.message);
-      },
-      onError: () => {
-        log.add({ type: 'error', content: 'Failed to connect to minitouch.' });
-        minitouch.current.close();
-        // minitouch.current = undefined;
-      },
-    });
+    try {
+      minitouch.current = createMinitouchWebsocket({
+        onOpen: () => {
+          log.add({ type: 'info', content: 'connected to minitouch.' });
+        },
+        onMessage: (data) => {
+          // console.log(data.message);
+        },
+        onError: () => {
+          log.add({ type: 'error', content: 'Failed to connect to minitouch.' });
+          minitouch.current.close();
+          // minitouch.current = undefined;
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const init = () => {
@@ -236,23 +261,19 @@ const Screen = ({}) => {
   };
 
   useEffect(() => {
-    // console.log(setting.host);
+    console.log(setting.host);
     // console.log('B');
-    if (setting.host || option.disableddMinicap) {
+    if (option.disableddMinicap) {
       if (minicap.current) {
         minicap.current.close();
       }
       if (minitouch.current) {
         minitouch.current.close();
       }
-    }
-    if (option.disableddMinicap) {
       msg.add({ type: 'warning', content: 'Disconnected from minicap.' });
       clearInterval(interval.current);
     } else {
-      if (setting.host) {
-        init();
-      }
+      init();
     }
     return () => {
       // console.log('A');
@@ -261,13 +282,25 @@ const Screen = ({}) => {
   }, [setting.host, option]);
 
   useEffect(() => {
-    // init();
+    // console.log(display);
+  }, [display]);
+
+  useEffect(() => {
+    init();
   }, []);
 
   // console.log(minitouch.current)
 
   return (
-    <Box bgcolor={theme.palette.grey[700]} p={{ xs: 0, md: 0 }} flex="1" display="flex" flexDirection="column" justifyContent="center">
+    <Box
+      bgcolor={theme.palette.grey[900]}
+      p={{ xs: 0, md: 0 }}
+      flex="1"
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+      {...props}
+    >
       <Box
         borderRadius={{ xs: 0, md: 0 /* theme.radius.box */ }}
         overflow="hidden"
@@ -291,14 +324,18 @@ const Screen = ({}) => {
             <Loading />
           </Box>
         )}
-        <Box
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerMove={onPointerMove}
-          onPointerOut={onPointerOut}
-          onContextMenu={onContextMenu}
-        >
-          <ScreenCanvas ref={canvasRef} />
+        <Box position="relative">
+          {/* <Pointer pointer={pointer} /> */}
+          <Box
+            component="canvas"
+            ref={canvasRef}
+            width="100%"
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onContextMenu={onContextMenu}
+          />
         </Box>
       </Box>
     </Box>

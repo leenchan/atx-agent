@@ -1,5 +1,4 @@
 
-import { loadSetting, defaultHost } from '@hook/useSetting';
 import { getAtxWsUrl } from './common';
 
 // const setting = loadSetting();

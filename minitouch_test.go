@@ -28,12 +28,19 @@ func (c *MockConn) SetDeadline(t time.Time) error      { return nil }
 func (c *MockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (c *MockConn) SetWriteDeadline(t time.Time) error { return nil }
 
+// unixSocketPath := "@minitouch"
 func TestDrainTouchRequests(t *testing.T) {
 	reqC := make(chan TouchRequest, 0)
 	conn := &MockConn{
 		buffer: bytes.NewBuffer(nil),
 	}
-	err := drainTouchRequests(conn, reqC)
+	unixSocketPath := "@minitouch"
+	if !service.Running("minitouch") {
+		if service.Running("minitouchagent") {
+			unixSocketPath = "@minitouchagent"
+		}
+	}
+	err := drainTouchRequests(conn, reqC, unixSocketPath)
 	assert.Error(t, err)
 
 	conn = &MockConn{
@@ -63,8 +70,8 @@ $ 25654`),
 		Operation: "u",
 		Index:     4,
 	}
-	close(reqC)
-	drainTouchRequests(conn, reqC)
-	output := string(conn.buffer.Bytes())
+	drainTouchRequests(conn, reqC, unixSocketPath)
+	// output := string(conn.buffer.Bytes())
+	output := conn.buffer.String()
 	assert.Equal(t, "d 1 1080 1920 255\nc\nm 3 540 960 255\nu 4\n", output)
 }

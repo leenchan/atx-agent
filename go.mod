@@ -27,18 +27,18 @@ require (
 	github.com/openatx/androidutils v1.0.0
 	github.com/oxtoacart/bpool v0.0.0-20150712133111-4e1c5567d7c2 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.10.0
-	github.com/prometheus/common v0.18.0
+	github.com/prometheus/client_golang v1.11.1
+	github.com/prometheus/common v0.26.0
 	github.com/prometheus/procfs v0.6.0
 	github.com/robfig/cron v1.2.0
 	github.com/rs/cors v1.6.0
 	github.com/sevlyar/go-daemon v0.1.4
 	github.com/shogo82148/androidbinary v1.0.1
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
+	github.com/shurcooL/httpfs v0.0.0-20230704072500-f1e31cf0ba5c // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20230704071429-0000e147ea92 // indirect
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stretchr/testify v1.7.0
-	golang.org/x/sys v0.0.0-20210521203332-0cec03c779c1 // indirect
+	github.com/spf13/viper v1.18.2
+	github.com/stretchr/testify v1.8.4
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

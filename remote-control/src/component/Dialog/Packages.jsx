@@ -1,18 +1,18 @@
 import { useState, useEffect, useContext } from 'react';
-import { Box, Button, CircularProgress, LinearProgress, IconButton, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, LinearProgress, IconButton, Typography, Link } from '@mui/material';
 import Dialog from '@ui/Dialog';
 import Upload from '@ui/Upload';
 import Loading from '@ui/Loading';
-import { getPackages } from '@api/atx';
 import { MessageContext } from '@ui/Message';
 import { useTheme } from '@emotion/react';
-import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { LoadingContext } from '@hook/useLoading';
 import { alpha } from '@mui/material';
-import { installApk, uninstallPkg } from '@api/atx';
-import { getPkgInfo } from '@api/atx';
+import { getPackages, getPkgInfo, installApk, uninstallPkg, openPkg, getApkPath } from '@api/atx';
 import { getAtxUrl } from '@api/common';
 import Modal from './Modal';
 import PackageInfo from './PackageInfo';
@@ -52,6 +52,11 @@ const Packages = ({
     loading.remove('uninstall');
   };
 
+  const onDownloadApk = async (name) => {
+    const apk = await getApkPath(name);
+    console.log(apk);
+  };
+
   const onPkgInfo = async (name) => {
     setPkgInfo({});
     loading.add('info');
@@ -63,6 +68,14 @@ const Packages = ({
       console.error(error);
     }
     loading.remove('info');
+  };
+
+  const onPkgOpen = async (pkgActivity) => {
+    try {
+      await openPkg(pkgActivity);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const onInstall = async (file, config) => {
@@ -86,14 +99,14 @@ const Packages = ({
   };
 
   const fetchPackages = async () => {
-    loading.add('packages');
+    loading.add('list-package');
     try {
       const { data } = await getPackages();
       setPackages(data);
     } catch (error) {
       message.add({ type: 'error', content: error });
     }
-    loading.remove('packages');
+    loading.remove('list-package');
   };
 
   const init = async () => {
@@ -114,7 +127,7 @@ const Packages = ({
         title={
           <>
             <Box mr={1} display="flex">
-              <ExtensionOutlinedIcon fontSize="large" />
+              <Inventory2OutlinedIcon fontSize="large" />
             </Box>
             Packages
           </>
@@ -146,9 +159,9 @@ const Packages = ({
         }
         disableBackdropClick={true}
       >
-        <Box minHeight={12}>
-          {loading.has() && (
-            <Box display="flex" justifyContent="center" alignItems="center" position="absolute" sx={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+        <Box>
+          {loading.has('list-package', 'install', 'uninstall') && (
+            <Box display="flex" justifyContent="center" alignItems="center">
               <Loading />
             </Box>
           )}
@@ -159,7 +172,7 @@ const Packages = ({
               ...(loading.has() ? { animation: theme.animation.blink } : {}),
             }}
           >
-            {packages.map(({ packageName, versionName, size }, index) => (
+            {packages.map(({ packageName, mainActivity, versionName, size }, index) => (
               <Box display="flex" border={theme.border.default} borderRadius={theme.radius.button} key={index}>
                 <Box p={1} display="flex">
                   <Box
@@ -183,7 +196,7 @@ const Packages = ({
                       {packageName}
                     </Typography>
                   </Box>
-                  <Box display="flex" color="text.secondary" mt={0.5}>
+                  <Box display="flex" flexWrap="wrap" color="text.secondary" mt={0.5}>
                     <Typography sx={{ mr: 1 }} variant="subtitle2" fontSize="0.75rem">
                       {versionName ? `v${versionName}` : '-'}
                     </Typography>
@@ -193,18 +206,30 @@ const Packages = ({
                   </Box>
                 </Box>
                 <Box p={1} display="flex" justifyContent="flex-end" color="text.secondary" alignSelf="center">
-                <IconButton
-                    onClick={() => onPkgInfo(packageName)}
-                  >
-                    <InfoOutlinedIcon color="secondary" fontSize="small" />
-                  </IconButton>
                   <IconButton
                     title="Remove"
                     onClick={() => onOpenUninstall(packageName)}
                     disabled={loading.has('uninstall')}
                   >
-                    
                     <DeleteOutlineOutlinedIcon color="secondary" fontSize="small" />
+                  </IconButton>
+                  <Link href={`${getAtxUrl()}/packages/${packageName}/download`} target="_blank">
+                    <IconButton
+                      title="Download APK"
+                      // onClick={() => onDownloadApk(packageName)}
+                    >
+                      <DownloadOutlinedIcon color="secondary" fontSize="small" />
+                    </IconButton>
+                  </Link>
+                  <IconButton
+                    onClick={() => onPkgInfo(packageName)}
+                  >
+                    <InfoOutlinedIcon color="secondary" fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => onPkgOpen(`${packageName}/${mainActivity}`)}
+                  >
+                    <PlayArrowOutlinedIcon color="secondary" fontSize="small" />
                   </IconButton>
                 </Box>
               </Box>
@@ -219,6 +244,7 @@ const Packages = ({
         onOk={onUninstall}
         onClose={onCloseUninstall}
         okText="Uninstall"
+        closeText="Cancel"
         content={`Are you sure to uninstall ${uninstall}?`}
       />
       <Modal

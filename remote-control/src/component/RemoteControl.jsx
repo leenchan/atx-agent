@@ -19,7 +19,7 @@ export const InfoContext = createContext({});
 const RemoteControl = () => {
   const theme = useTheme();
   const { isMobile } = useBreakpoint();
-  const [openController, setOpenController] = useState(false);
+  const [openController, setOpenController] = useState(true);
   // const [loading, setLoading] = useState([]);
   const loading = useLoading();
   const [msg, setMsg] = useState([]);
@@ -59,6 +59,7 @@ const RemoteControl = () => {
       // console.log(e)
     });
     document.addEventListener('keyup', function(e) {
+      e.stopPropagation();
       if (e.target.tagName == 'INPUT' || e.target.tagName == 'TEXTAREA' || e.ctrlKey || e.altKey) {
         return;
       }
@@ -78,8 +79,8 @@ const RemoteControl = () => {
         <LogContext.Provider value={{ log, add: addLog, clear: clearLog }}>
           <InfoContext.Provider value={{ info, refresh: refreshInfo }}>
             <OptionContext.Provider value={option}>
-              <Box height={{ xs: 'auto', md: '100vh' }}>
-                  <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }}>
+              <Box height={{ xs: 'auto', md: '100vh' }} display={{ xs: 'block', md: 'flex' }}>
+                  <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} flex="1">
                     <Box
                       flex="1"
                       display="flex"
@@ -87,16 +88,16 @@ const RemoteControl = () => {
                       borderRight={{ xs: 'none', md: theme.border.light }}
                       borderBottom={{ xs: theme.border.light, md: 'none' }}
                     >
-                      <Screen />
-                      <ScreenFooter
+                      <Screen flex="1" />
+                      {/* <ScreenFooter
                         onToggleController={() => setOpenController(!openController)}
                         openController={openController}
-                      />
+                      /> */}
                     </Box>
                     <Divider orientation={isMobile ? 'horizontal' : 'vertical'} flexItem />
-                    <Box width={{ xs: '100%', md: '33.33%', xl: '25%' }} display="flex" flexDirection="column">
+                    <Box width={{ xs: '100%', md: '30%', xl: '25%' }} maxWidth={{ xs: 'unset', md: 360 }} display="flex" flexDirection="column">
                       <Box>
-                        <Controller openController={openController} />
+                        <Controller openController={openController} onToggleController={() => setOpenController(!openController)} />
                       </Box>
                       <Box flex="1" display="flex" flexDirection="column">
                         <Console />

@@ -27,6 +27,7 @@ import (
 	"github.com/openatx/atx-agent/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
+	"github.com/spf13/viper"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/dustin/go-broadcast"
@@ -42,12 +43,13 @@ import (
 
 var (
 	expath, _   = GetExDir()
-	rootPath    = expath + "/atx_root"
-	binPath     = rootPath + "/bin"
-	libPath     = rootPath + "/lib"
-	dataPath    = rootPath + "/data"
-	tmpPath     = rootPath + "/tmp"
-	logPath     = rootPath + "/log"
+	rootPath    = filepath.Join(expath, "atx_root")
+	binPath     = filepath.Join(rootPath, "bin")
+	libPath     = filepath.Join(rootPath, "lib")
+	dataPath    = filepath.Join(rootPath, "data")
+	tmpPath     = filepath.Join(rootPath, "tmp")
+	logPath     = filepath.Join(rootPath, "log")
+	configFile  = filepath.Join(dataPath, "config.json")
 	service     = cmdctrl.New()
 	downManager = newDownloadManager()
 	upgrader    = websocket.Upgrader{
@@ -66,20 +68,27 @@ var (
 	daemonLogPath  = filepath.Join(logPath, "atx-agent.daemon.log")
 	httpServerAddr string
 
-	minicapBin              = filepath.Join(binPath, "minicap")
-	minicapSo               = filepath.Join(libPath, "minicap.so")
-	minitouchBin            = filepath.Join(binPath, "minitouch")
-	busyboxBin              = filepath.Join(binPath, "busybox")
-	alistBin                = filepath.Join(binPath, "alist")
-	alistDataPath           = rootPath + "/alist"
-	rotationPublisher       = broadcast.NewBroadcaster(1)
-	minicapSocketPath       = "@minicap"
-	minitouchSocketPath     = "@minitouch"
-	filebrowserRootDir      = "/sdcard"
-	filebrowserPort         = "8000"
+	minicapBin          = filepath.Join(binPath, "minicap")
+	minicapSo           = filepath.Join(libPath, "minicap.so")
+	minicapSocketPath   = "@minicap"
+	minitouchBin        = filepath.Join(binPath, "minitouch")
+	minitouchSocketPath = "@minitouch"
+	busyboxBin          = filepath.Join(binPath, "busybox")
+	curlBin             = filepath.Join(binPath, "curl")
+	alistBin            = filepath.Join(binPath, "alist")
+	alistDataPath       = filepath.Join(dataPath, "alist")
+	alistPort           = "5244"
+	filebrowserBin      = filepath.Join(binPath, "filebrowser")
+	filebrowserDataPath = filepath.Join(dataPath, "filebrowser")
+	filebrowserDatabase = filepath.Join(filebrowserDataPath, "filebrowser.db")
+	filebrowserRootDir  = "/sdcard"
+	filebrowserPort     = "8000"
+
 	aliyundriveRefreshToken string
 	aliyundrivePort         = "8080"
-	log                     = logger.Default
+
+	rotationPublisher = broadcast.NewBroadcaster(1)
+	log               = logger.Default
 )
 
 // singleFight for http request
@@ -357,6 +366,29 @@ var (
 		},
 	}
 
+	alistProxy = &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.RawQuery = "" // ignore http query
+			req.URL.Scheme = "http"
+			req.URL.Host = "127.0.0.1:" + alistPort
+		},
+		Transport: &http.Transport{
+			// Ref: https://golang.org/pkg/net/http/#RoundTripper
+			Dial: func(network, addr string) (net.Conn, error) {
+				conn, err := (&net.Dialer{
+					Timeout:   5 * time.Second,
+					KeepAlive: 30 * time.Second,
+					DualStack: true,
+				}).Dial(network, addr)
+				return conn, err
+			},
+			MaxIdleConns:          100,
+			IdleConnTimeout:       180 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
+
 	aliyundriveProxy = &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			req.URL.RawQuery = "" // ignore http query
@@ -589,6 +621,20 @@ func main() {
 	os.MkdirAll(tmpPath, 0777)
 	os.MkdirAll(logPath, 0777)
 
+	// Load configuration
+	if _, err := os.Stat(configFile); errors.Is(err, os.ErrNotExist) {
+		err = os.WriteFile(configFile, []byte("{}"), 0666)
+	}
+	// viper.AddConfigPath(dataPath)
+	viper.SetConfigFile(configFile)
+	viper.SetConfigType("json")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Warningln("Failed to load config file: ", err)
+		// panic(fmt.Errorf("Failed to load config file: %s\n", err))
+	} else {
+
+	}
+
 	// CMD: curl
 	cmdCurl := kingpin.Command("curl", "curl command")
 	subcmd.RegisterCurl(cmdCurl)
@@ -609,9 +655,9 @@ func main() {
 	// minicap image quality
 	cmdServer.Flag("quality", "minicap image quality： 1~100").Short('q').Default("80").StringVar(&minicapQuality)
 	// FileBrowser
-	cmdServer.Flag("files", "FileBrowser: root directory").Short('f').Default("/sdcard").StringVar(&filebrowserRootDir)
+	// cmdServer.Flag("files", "FileBrowser: root directory").Short('f').Default("/sdcard").StringVar(&filebrowserRootDir)
 	// aliyundrive
-	cmdServer.Flag("refresh-token", "AliyunDrive: refresh token").Short('r').StringVar(&aliyundriveRefreshToken)
+	// cmdServer.Flag("refresh-token", "AliyunDrive: refresh token").Short('r').StringVar(&aliyundriveRefreshToken)
 	// CMD: version
 	kingpin.Command("version", "show version")
 
@@ -730,7 +776,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// minicap + minitouch
+	// minicap
 	width, height := devInfo.Display.Width, devInfo.Display.Height
 	service.Add("minicap", cmdctrl.CommandInfo{
 		Environ: []string{fmt.Sprintf("LD_LIBRARY_PATH=%v", libPath)},
@@ -740,12 +786,12 @@ func main() {
 
 	// alist
 	service.Add("alist", cmdctrl.CommandInfo{
-		Args: []string{alistBin, "--refresh-token", aliyundriveRefreshToken, "--port", aliyundrivePort, "--auto-index"},
+		Args: []string{alistBin, "--data", alistDataPath, "server"},
 	})
 
 	// File Browser
 	service.Add("filebrowser", cmdctrl.CommandInfo{
-		Args: []string{fmt.Sprintf("%v/%v", binPath, "filebrowser"), "-b", "/fb", "-a", "127.0.0.1", "-p", filebrowserPort, "-r", filebrowserRootDir},
+		Args: []string{fmt.Sprintf(filebrowserBin), "-b", "/fb", "-a", "127.0.0.1", "-p", filebrowserPort, "-r", filebrowserDatabase},
 	})
 
 	// Aliyundrive Webdav

@@ -37,6 +37,7 @@ type DeviceInfo struct {
 	Sdk                    int                   `json:"sdk,omitempty"`
 	AgentVersion           string                `json:"agentVersion,omitempty"`
 	Display                *androidutils.Display `json:"display,omitempty"`
+	Rotation               int                   `json:"rotation"`
 	Battery                *androidutils.Battery `json:"battery,omitempty"`
 	Memory                 *MemoryInfo           `json:"memory,omitempty"` // proc/meminfo
 	Cpu                    *CpuInfo              `json:"cpu,omitempty"`    // proc/cpuinfo

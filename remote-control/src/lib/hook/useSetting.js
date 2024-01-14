@@ -9,7 +9,8 @@ export const SettingContext = createContext({});
 
 const SETTING = 'setting';
 
-export const defaultHost = location.host.split(':')[0] + ':7912';
+export const defaultHost = location.host;
+// export const defaultHost = location.host.split(':')[0] + ':' + (location.host.split(':')[1] ?? '7912');
 
 const save = (data) => {
   localStorage.setItem(SETTING, JSON.stringify(data));
@@ -19,7 +20,7 @@ const load = () => {
 };
 
 const initSetting = {
-  host: load().host ?? defaultHost,
+  // host: load().host ?? defaultHost,
 };
 
 export const loadSetting = () => {

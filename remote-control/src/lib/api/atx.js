@@ -36,6 +36,10 @@ export const getInfo = () => {
   );
 };
 
+export const getApkPath = async (name) => {
+  return axios.get(getAtxUrl() + `/packages/${name}/download`);
+};
+
 export const getProp = () => {
   return shell({ cmd: 'getprop' });
 };
@@ -66,6 +70,11 @@ export const getDiskUsage = () => {
     // console.log(res.data?.output.split(/\n/).map((row) => row.split(/\s+/)));
     return data;
   });
+};
+
+export const getUptime = () => {
+  return shell({ cmd: 'uptime' })
+    .then((res) => res.data.output);
 };
 
 export const getPropByJson = async () => {
@@ -113,9 +122,14 @@ export const minitouchJsonToCmd = (obj) => {
 export const sendTouch = ({
   minitouch: wsMinitouch,
   event: obj,
-  onSuccess = () => {},
+  display = {},
+  rotation = 0,
+  pointerDown = [],
+  pointerMove = [],
+  onSend = () => {},
 } = {}) => {
-  console.log(wsMinitouch, obj);
+  // console.log(wsMinitouch, obj);
+  // console.log(pointerDown, pointerMove);
   if (!wsMinitouch) {
     return;
   };
@@ -123,7 +137,7 @@ export const sendTouch = ({
   if (obj.xP || obj.yP) {
     xP = Math.floor(obj.xP * 1000) / 1000;
     yP = Math.floor(obj.yP * 1000) / 1000;
-    switch (window.orientation) {
+    switch (rotation) {
       case 90:
         obj.xP = 1 - yP;
         obj.yP = xP;
@@ -143,20 +157,22 @@ export const sendTouch = ({
     }
   }
   if (wsMinitouch.readyState == 1) {
-    onSuccess(obj);
+    // console.log('touch -> A');
+    // console.log(obj);
+    onSend(obj);
     wsMinitouch.send(JSON.stringify(obj));
   } else {
-    if (obj.operation == 'u' && window.displayPhySize) {
-      var displayPhySize = window.displayPhySize.split('x');
-      var displayW = (window.orientation == 90 || window.orientation == 270) ? displayPhySize[1] : displayPhySize[0],
-        displayH = (window.orientation == 90 || window.orientation == 270) ? displayPhySize[0] : displayPhySize[1];
-      if (pointersMove[obj.index]) {
+    // console.log('touch -> B');
+    if (obj.operation == 'u' && display?.width) {
+      var displayWidth = (rotation == 90 || rotation == 270) ? display.height : display.width,
+        displayHeight = (rotation == 90 || rotation == 270) ? display?.width : display?.height;
+      if (pointerMove[obj.index]) {
         shell({ cmd: 'input swipe ' + 
-          Math.floor(pointersDown[obj.index].xP*displayW) + ' ' + Math.floor(pointersDown[obj.index].yP*displayH) + ' ' +
-          Math.floor(pointersMove[obj.index].xP*displayW) + ' ' + Math.floor(pointersMove[obj.index].yP*displayH)
+          Math.floor(pointerDown[obj.index].xP*displayWidth) + ' ' + Math.floor(pointerDown[obj.index].yP*displayHeight) + ' ' +
+          Math.floor(pointerMove[obj.index].xP*displayWidth) + ' ' + Math.floor(pointerMove[obj.index].yP*displayHeight)
         });
       } else {
-        shell({ cmd: 'input tap ' + Math.floor(pointersDown[obj.index].xP*displayW) + ' ' + Math.floor(pointersDown[obj.index].yP*displayH) });
+        shell({ cmd: 'input tap ' + Math.floor(pointerDown[obj.index].xP*displayWidth) + ' ' + Math.floor(pointerDown[obj.index].yP*displayHeight) });
       }
     }
   }
@@ -274,7 +290,7 @@ export const installMinicap = () => {
   return axios.put(getAtxUrl() + '/minicap');
 };
 export const getMinicapDisplay = () => {
-  return shell({ cmd: 'minicap -i' })
+  return axios.post( { args: 'minicap -i' })
     .then((res) => JSON.parse(res.data.output));
 };
 
@@ -287,32 +303,24 @@ export const checkMinitouch = () => {
     .then((res) => /usage/i.test(res.data.output));
 };
 
-// busybox
-export const installBusybox = () => {
-  return axios.get(getAtxUrl() + '/busybox/install');
+// Addon
+export const installAddon = ({ name }) => {
+  return axios.get(getAtxUrl() + `/${name}/install`);
 };
-export const removeBusybox = () => {
-  return axios.get(getAtxUrl() + '/busybox/uninstall');
+export const uninstallAddon = ({ name }) => {
+  return axios.get(getAtxUrl() + `/${name}/uninstall`);
 };
-export const getBusyboxVersion = () => {
-  return shell({ cmd: 'busybox 2>&1' })
-    .then((res) => res.data.output.match(/v[.0-9]+/)?.[0]);
+export const runAddon = ({ name, ...params }) => {
+  return axios.post(getAtxUrl() + `/${name}/run`, params);
 };
-
-// alist
-export const installAlist = () => {
-  return axios.put(getAtxUrl() + '/alist');
+export const startAddon = ({ name, ...params }) => {
+  return axios.get(getAtxUrl() + `/services/${name}/start`, params);
 };
-export const getAlistVersion = () => {
-  return axios.get(getAtxUrl() + '/alist')
-    .then((res) => {
-      let output = {};
-      res.data.data.split(/\n/).forEach((row) => {
-        const spIndex = row.indexOf(':');
-        output[row.substring(0, spIndex).trim().toLowerCase()] = row.substring(spIndex + 1).trim();
-      });
-      return output;
-    });
+export const stopAddon = ({ name, ...params }) => {
+  return axios.get(getAtxUrl() + `/services/${name}/stop`, params);
+};
+export const restartpAddon = ({ name, ...params }) => {
+  return axios.get(getAtxUrl() + `/services/${name}/restart`, params);
 };
 
 export const getPackages = (filter) => {
@@ -321,6 +329,10 @@ export const getPackages = (filter) => {
 
 export const getPkgInfo = (name) => {
   return axios.get(getAtxUrl() + `/packages/${name}/info`);
+};
+
+export const openPkg = (pkgActivity) => {
+  return shell({ cmd: `am start ${pkgActivity}` });
 };
 
 export const sl4aApi = (params) => {

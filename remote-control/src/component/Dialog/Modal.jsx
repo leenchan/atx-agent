@@ -41,6 +41,7 @@ const Modal = ({
   open,
   content,
   icon,
+  headerAddon,
 }) => {
   const modalMode = Object.keys(modes).includes(mode) ? mode : 'info';
   const modalTitle = title ?? modes[modalMode].title;
@@ -63,11 +64,14 @@ const Modal = ({
         </Box>
       )}
       title={
-        <Box display="flex" justifyContent="flex-start" alignItems="center">
+        <Box display="flex" justifyContent="flex-start" alignItems="center" width="100%">
           <Box mr={2} display="flex">
             {icon ?? modes[modalMode].icon}
           </Box>
-          <Typography sx={{ fontSize: '1.25rem' }}>{modalTitle}</Typography>
+          <Typography sx={{ fontSize: '1.25rem', flex: '1' }}>{modalTitle}</Typography>
+          {headerAddon && (
+            <Box>{headerAddon}</Box>
+          )}
         </Box>
       }
       onClose={onClose}
